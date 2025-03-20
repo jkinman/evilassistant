@@ -1,29 +1,29 @@
-import pyaudio
+import sounddevice as sd
+import numpy as np
 import wave
-import subprocess
-import requests
 import os
 import pygame.mixer
+import time
+import whisper
+from openai import OpenAI
 
 # Audio setup
-RATE = 44100  # Matches your working arecord command
-CHUNK = 1024
-audio = pyaudio.PyAudio()
-try:
-    stream = audio.open(format=pyaudio.paInt16, channels=1, rate=RATE, input=True, frames_per_buffer=CHUNK)
-except Exception as e:
-    print(f"Error opening audio stream: {e}")
-    audio.terminate()
-    exit(1)
+RATE = 44100
+DURATION = 2
+CHANNELS = 1
 
-# xAI API setup
-API_KEY = os.getenv("XAI_API_KEY")  # Fetch from environment variable
+# Load Whisper model
+model = whisper.load_model("tiny")
+
+# xAI Grok API setup using OpenAI client
+API_KEY = os.getenv("XAI_API_KEY")
 if not API_KEY:
     print("Error: XAI_API_KEY environment variable not set")
-    audio.terminate()
     exit(1)
-URL = "https://api.xai.com/v1/grok"
-headers = {"Authorization": f"Bearer {API_KEY}"}
+client = OpenAI(
+    api_key=API_KEY,
+    base_url="https://api.x.ai/v1",  # Custom base URL for xAI
+)
 
 # Wake-up phrase
 WAKE_PHRASE = "evil assistant"
@@ -32,10 +32,8 @@ WAKE_PHRASE = "evil assistant"
 pygame.mixer.init()
 
 def play_audio(audio_file):
-    """Play WAV file without LED dimming."""
     sound = pygame.mixer.Sound(audio_file)
     sound.play()
-    # Wait for playback to finish (approximate duration)
     duration = sound.get_length()
     time.sleep(duration)
 
@@ -44,37 +42,40 @@ print(f"Listening for wake-up phrase: '{WAKE_PHRASE}'...")
 try:
     while True:
         print("Listening...")
-
-        frames = []
-        for _ in range(int(RATE / CHUNK * 2)):
-            data = stream.read(CHUNK, exception_on_overflow=False)
-            frames.append(data)
-
-        wf = wave.open("temp.wav", "wb")
-        wf.setnchannels(1)
-        wf.setsampwidth(audio.get_sample_size(pyaudio.paInt16))
-        wf.setframerate(RATE)
-        wf.writeframes(b"".join(frames))
-        wf.close()
-
-        result = subprocess.run(["../whisper.cpp/build/bin/whisper-cli", "-m", "../../whisper.cpp/models/ggml-tiny.en.bin", "-f", "temp.wav"], capture_output=True, text=True)
-        transcription = result.stdout.strip().lower()
+        audio_data = sd.rec(int(DURATION * RATE), samplerate=RATE, channels=CHANNELS, dtype='int16')
+        sd.wait()
+        with wave.open("temp.wav", "wb") as wf:
+            wf.setnchannels(CHANNELS)
+            wf.setsampwidth(2)
+            wf.setframerate(RATE)
+            wf.writeframes(audio_data.tobytes())
+        result = model.transcribe("temp.wav", language="en")
+        transcription = result["text"].strip().lower()
         print(f"Heard: {transcription}")
-
         if WAKE_PHRASE in transcription:
             print(f"Wake-up phrase '{WAKE_PHRASE}' detected!")
-            data = {"prompt": f"Respond to this in a deep, demonic tone: {transcription}"}
-            response = requests.post(URL, headers=headers, json=data)
-            ai_response = response.json()["response"]
-            print(f"Demon Grok says: {ai_response}")
-
-            output_file = "demon_output.wav"
+            # Grok API request via OpenAI client
+            response = client.chat.completions.create(
+                model="grok-2-latest",  # From Grok docs example
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are Evil Assistant, a chatbot with a deep, demonic tone."
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Respond to this in English: {transcription}"
+                    },
+                ],
+                max_tokens=100
+            )
+            # Extract response from Grok
+            ai_response = response.choices[0].message.content
+            print(f"Evil Assistant says: {ai_response}")
+            output_file = "evil_output.wav"
             os.system(f'espeak -v en-us -p 10 -s 100 -w {output_file} "{ai_response}"')
             play_audio(output_file)
             os.remove(output_file)
 
 except KeyboardInterrupt:
-    stream.stop_stream()
-    stream.close()
-    audio.terminate()
     print("Stopped")
