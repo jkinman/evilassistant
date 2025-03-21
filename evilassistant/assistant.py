@@ -14,19 +14,12 @@ def play_audio(audio_file, use_pygame=True):
     if use_pygame:
         pygame.mixer.init()
         sound = pygame.mixer.Sound(audio_file)
+        sound.set_volume(1.0)
         channel = sound.play()
-        while channel.get_busy():  # Wait until playback completes
+        while channel.get_busy():
             pygame.time.wait(100)
     else:
-        # Fallback to aplay for debugging
-        print(f"Playing {audio_file} with aplay...")
         os.system(f"aplay {audio_file}")
-
-def get_wav_duration(file_path):
-    with wave.open(file_path, "rb") as wf:
-        frames = wf.getnframes()
-        rate = wf.getframerate()
-        return frames / float(rate)
 
 def record_until_silence():
     print("Ask your question... (stops on silence)")
@@ -48,30 +41,15 @@ def record_until_silence():
 
     return np.concatenate(audio_chunks, axis=0)
 
-def speak_text(text, output_file, voice, debug=False):
+def speak_text(text, output_file, voice):
     temp_file = "temp.wav"
     with wave.open(temp_file, "wb") as wav_file:
         wav_file.setnchannels(CHANNELS)
         wav_file.setsampwidth(2)
         wav_file.setframerate(RATE)
         voice.synthesize(text, wav_file)
-    
-    if debug:
-        temp_duration = get_wav_duration(temp_file)
-        print(f"Piper output duration: {temp_duration:.2f} seconds")
-        print("Testing Piper output with aplay...")
-        os.system(f"aplay {temp_file}")
-    
-    # Use -t wav to ensure Sox preserves full length
-    os.system(f"sox {temp_file} -t wav {output_file} {SOX_EFFECTS}")
-    
-    if debug:
-        out_duration = get_wav_duration(output_file)
-        print(f"Sox output duration: {out_duration:.2f} seconds")
-        print("Testing Sox output with aplay...")
-        os.system(f"aplay {output_file}")
-    
-    play_audio(output_file, use_pygame=True)
+    os.system(f"sox {temp_file} {output_file} {SOX_EFFECTS}")
+    play_audio(output_file)
     os.remove(temp_file)
 
 def get_random_greeting(client):
@@ -85,7 +63,7 @@ def get_random_greeting(client):
     )
     return response.choices[0].message.content
 
-def run_assistant(debug=False):
+def run_assistant():
     model = WhisperModel("tiny", device="cpu", compute_type="int8")
 
     piper_model = os.path.join(os.getcwd(), "en_US-lessac-low.onnx")
@@ -104,7 +82,7 @@ def run_assistant(debug=False):
         return
     client = OpenAI(api_key=api_key, base_url="https://api.x.ai/v1")
 
-    print(f"Listening for wake-up phrase: '{WAKE_PHRASE}'...")
+    print(f"Listening for wake-up phrases: {', '.join(WAKE_PHRASES)}...")
 
     while True:
         print("Listening...")
@@ -119,12 +97,14 @@ def run_assistant(debug=False):
         transcription = " ".join([segment.text for segment in segments]).strip().lower()
         print(f"Heard: {transcription}")
         
-        if WAKE_PHRASE in transcription:
-            print(f"Wake-up phrase '{WAKE_PHRASE}' detected!")
+        # Check if any wake-up phrase is in the transcription
+        if any(phrase in transcription for phrase in WAKE_PHRASES):
+            detected_phrase = next(phrase for phrase in WAKE_PHRASES if phrase in transcription)
+            print(f"Wake-up phrase '{detected_phrase}' detected!")
             welcome_message = get_random_greeting(client)
             print(f"Welcome message: {welcome_message}")
             welcome_file = "welcome.wav"
-            speak_text(welcome_message, welcome_file, voice, debug=debug)
+            speak_text(welcome_message, welcome_file, voice)
             os.remove(welcome_file)
             
             full_audio = record_until_silence()
@@ -148,6 +128,6 @@ def run_assistant(debug=False):
             ai_response = response.choices[0].message.content
             print(f"Evil Assistant says: {ai_response}")
             output_file = "evil_output.wav"
-            speak_text(ai_response, output_file, voice, debug=debug)
+            speak_text(ai_response, output_file, voice)
             os.remove(output_file)
             os.remove("full_query.wav")
