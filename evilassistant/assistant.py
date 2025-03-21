@@ -13,9 +13,10 @@ from .config import *
 def play_audio(audio_file):
     pygame.mixer.init()
     sound = pygame.mixer.Sound(audio_file)
-    sound.play()
-    duration = sound.get_length()
-    time.sleep(duration)
+    channel = sound.play()
+    while channel.get_busy():  # Wait until playback is complete
+        pygame.time.wait(100)  # Small delay to avoid busy-waiting
+    # No need for time.sleep—get_busy() ensures full playback
 
 def record_until_silence():
     print("Ask your question... (stops on silence)")
@@ -43,7 +44,7 @@ def speak_text(text, output_file, voice):
         wav_file.setnchannels(CHANNELS)
         wav_file.setsampwidth(2)
         wav_file.setframerate(RATE)
-        voice.synthesize(text, wav_file)
+        voice.synthesize(text, wav_file)  # Ensure full text is synthesized
     os.system(f"sox {temp_file} {output_file} {SOX_EFFECTS}")
     play_audio(output_file)
     os.remove(temp_file)
@@ -60,7 +61,6 @@ def get_random_greeting(client):
     return response.choices[0].message.content
 
 def run_assistant():
-    # Load Faster-Whisper tiny model
     model = WhisperModel("tiny", device="cpu", compute_type="int8")
 
     piper_model = os.path.join(os.getcwd(), "en_US-lessac-low.onnx")
