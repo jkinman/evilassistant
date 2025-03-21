@@ -62,8 +62,8 @@ def get_random_greeting(client):
     response = client.chat.completions.create(
         model="grok-2-latest",
         messages=[
-            {"role": "system", "content": "You are Evil Assistant, a malevolent entity with a deep, demonic tone, sneering at human folly. Respond with dark, disdainful humor, as if their trivial lives are a jest before your dread power."},
-            {"role": "user", "content": "Provide a short, unique, sinister greeting in English to welcome a mortal who has summoned me. Make it dark and varied each time."},
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": GREETING_INSTRUCTION},
         ],
         max_tokens=50
     )
@@ -136,7 +136,7 @@ def run_assistant():
                     response = client.chat.completions.create(
                         model="grok-2-latest",
                         messages=[
-                            {"role": "system", "content": "You are Evil Assistant, a malevolent entity with a deep, demonic tone, sneering at human folly. Respond with dark, disdainful humor, as if their trivial lives are a jest before your dread power."},
+                            {"role": "system", "content": SYSTEM_PROMPT},
                             {"role": "user", "content": f"Respond to this in English: {full_transcription}"},
                         ],
                         max_tokens=100
@@ -174,7 +174,7 @@ def run_assistant():
                     response = client.chat.completions.create(
                         model="grok-2-latest",
                         messages=[
-                            {"role": "system", "content": "You are Evil Assistant, a malevolent entity with a deep, demonic tone, sneering at human folly. Respond with dark, disdainful humor, as if their trivial lives are a jest before your dread power."},
+                            {"role": "system", "content": SYSTEM_PROMPT},
                             {"role": "user", "content": f"Respond to this in English: {full_transcription}"},
                         ],
                         max_tokens=100
