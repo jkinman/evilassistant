@@ -58,6 +58,17 @@ def speak_text(text, output_file, voice):
     play_audio(output_file)
     os.remove(temp_file)
 
+def get_random_greeting(client):
+    response = client.chat.completions.create(
+        model="grok-2-latest",
+        messages=[
+            {"role": "system", "content": "You are Evil Assistant, a chatbot with a deep, demonic tone."},
+            {"role": "user", "content": "Provide a short, unique, sinister greeting in English to welcome a mortal who has summoned me. Make it dark and varied each time."},
+        ],
+        max_tokens=50
+    )
+    return response.choices[0].message.content
+
 def run_assistant():
     model = WhisperModel("tiny", device="cpu", compute_type="int8")
 
@@ -95,6 +106,13 @@ def run_assistant():
         if any(phrase in transcription for phrase in WAKE_PHRASES):
             detected_phrase = next(phrase for phrase in WAKE_PHRASES if phrase in transcription)
             print(f"Wake-up phrase '{detected_phrase}' detected!")
+            
+            # Speak a random Grok greeting
+            welcome_message = get_random_greeting(client)
+            print(f"Welcome message: {welcome_message}")
+            welcome_file = "welcome.wav"
+            speak_text(welcome_message, welcome_file, voice)
+            os.remove(welcome_file)
             
             while True:  # Inner loop for questions
                 full_audio = record_until_silence()
