@@ -9,4 +9,4 @@ WELCOME_PHRASE = "I am Evil Assistant, what dark query do you dare to ask?"
 
 PIPER_MODEL = "en_US-lessac-low.onnx"
 PIPER_CONFIG = "en_US-lessac-low.onnx.json"
-SOX_EFFECTS = "tempo 0.8 pitch -300 reverb 50 overdrive 10"
+SOX_EFFECTS = "tempo 0.8 pitch -600 reverb 70 overdrive 20"
