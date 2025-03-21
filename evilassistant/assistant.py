@@ -5,7 +5,7 @@ import wave
 import os
 import pygame.mixer
 import time
-import whisper
+from faster_whisper import WhisperModel
 from openai import OpenAI
 from piper import PiperVoice
 from .config import *
@@ -60,7 +60,8 @@ def get_random_greeting(client):
     return response.choices[0].message.content
 
 def run_assistant():
-    model = whisper.load_model("tiny")
+    # Load Faster-Whisper tiny model
+    model = WhisperModel("tiny", device="cpu", compute_type="int8")
 
     piper_model = os.path.join(os.getcwd(), "en_US-lessac-low.onnx")
     piper_config = os.path.join(os.getcwd(), "en_US-lessac-low.onnx.json")
@@ -89,31 +90,28 @@ def run_assistant():
             wf.setsampwidth(2)
             wf.setframerate(RATE)
             wf.writeframes(audio_data.tobytes())
-        result = model.transcribe("temp.wav", language="en")
-        transcription = result["text"].strip().lower()
+        segments, _ = model.transcribe("temp.wav", beam_size=5, language="en")
+        transcription = " ".join([segment.text for segment in segments]).strip().lower()
         print(f"Heard: {transcription}")
         
         if WAKE_PHRASE in transcription:
             print(f"Wake-up phrase '{WAKE_PHRASE}' detected!")
-            # Fetch and speak a random greeting from Grok
             welcome_message = get_random_greeting(client)
             print(f"Welcome message: {welcome_message}")
             welcome_file = "welcome.wav"
             speak_text(welcome_message, welcome_file, voice)
             os.remove(welcome_file)
             
-            # Record user's question
             full_audio = record_until_silence()
             with wave.open("full_query.wav", "wb") as wf:
                 wf.setnchannels(CHANNELS)
                 wf.setsampwidth(2)
                 wf.setframerate(RATE)
                 wf.writeframes(full_audio.tobytes())
-            result = model.transcribe("full_query.wav", language="en")
-            full_transcription = result["text"].strip().lower()
+            segments, _ = model.transcribe("full_query.wav", beam_size=5, language="en")
+            full_transcription = " ".join([segment.text for segment in segments]).strip().lower()
             print(f"Question: {full_transcription}")
             
-            # Get and speak Grok's answer
             response = client.chat.completions.create(
                 model="grok-2-latest",
                 messages=[
