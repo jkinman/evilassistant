@@ -1,3 +1,4 @@
+# ~/evilassistant/evilassistant/assistant.py
 import sounddevice as sd
 import numpy as np
 import wave
@@ -47,11 +48,29 @@ def speak_text(text, output_file, voice):
     play_audio(output_file)
     os.remove(temp_file)
 
+def get_random_greeting(client):
+    response = client.chat.completions.create(
+        model="grok-2-latest",
+        messages=[
+            {"role": "system", "content": "You are Evil Assistant, a chatbot with a deep, demonic tone."},
+            {"role": "user", "content": "Provide a short, unique, sinister greeting in English to welcome a mortal who has summoned me. Make it dark and varied each time."},
+        ],
+        max_tokens=50
+    )
+    return response.choices[0].message.content
+
 def run_assistant():
-    # tiny is fast but dumb
-    # base is better
-    model = whisper.load_model("base")
-    voice = PiperVoice.load(PIPER_MODEL, config_path=PIPER_CONFIG)
+    model = whisper.load_model("tiny")
+
+    piper_model = os.path.join(os.getcwd(), "en_US-lessac-low.onnx")
+    piper_config = os.path.join(os.getcwd(), "en_US-lessac-low.onnx.json")
+    
+    if not os.path.exists(piper_model) or not os.path.exists(piper_config):
+        print(f"Error: Piper model files not found at {piper_model} or {piper_config}")
+        print("Please download en_US-lessac-low.onnx and en_US-lessac-low.onnx.json to your working directory.")
+        return
+    
+    voice = PiperVoice.load(piper_model, config_path=piper_config)
 
     api_key = os.getenv("XAI_API_KEY")
     if not api_key:
@@ -76,10 +95,14 @@ def run_assistant():
         
         if WAKE_PHRASE in transcription:
             print(f"Wake-up phrase '{WAKE_PHRASE}' detected!")
+            # Fetch and speak a random greeting from Grok
+            welcome_message = get_random_greeting(client)
+            print(f"Welcome message: {welcome_message}")
             welcome_file = "welcome.wav"
-            speak_text(WELCOME_PHRASE, welcome_file, voice)
+            speak_text(welcome_message, welcome_file, voice)
             os.remove(welcome_file)
             
+            # Record user's question
             full_audio = record_until_silence()
             with wave.open("full_query.wav", "wb") as wf:
                 wf.setnchannels(CHANNELS)
@@ -90,6 +113,7 @@ def run_assistant():
             full_transcription = result["text"].strip().lower()
             print(f"Question: {full_transcription}")
             
+            # Get and speak Grok's answer
             response = client.chat.completions.create(
                 model="grok-2-latest",
                 messages=[
