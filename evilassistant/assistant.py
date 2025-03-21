@@ -48,7 +48,9 @@ def speak_text(text, output_file, voice):
     os.remove(temp_file)
 
 def run_assistant():
-    model = whisper.load_model("tiny")
+    # tiny is fast but dumb
+    # base is better
+    model = whisper.load_model("base")
     voice = PiperVoice.load(PIPER_MODEL, config_path=PIPER_CONFIG)
 
     api_key = os.getenv("XAI_API_KEY")
