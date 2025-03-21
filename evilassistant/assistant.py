@@ -108,19 +108,22 @@ def run_assistant():
                 print(f"Question: {full_transcription}")
                 os.remove("full_query.wav")
                 
-                response = client.chat.completions.create(
-                    model="grok-2-latest",
-                    messages=[
-                        {"role": "system", "content": "You are Evil Assistant, a chatbot with a deep, demonic tone."},
-                        {"role": "user", "content": f"Respond to this in English: {full_transcription}"},
-                    ],
-                    max_tokens=100
-                )
-                ai_response = response.choices[0].message.content
-                print(f"Evil Assistant says: {ai_response}")
-                output_file = "evil_output.wav"
-                speak_text(ai_response, output_file, voice)
-                os.remove(output_file)
+                if not full_transcription:  # Skip if no question
+                    print("No question detected, prompting again...")
+                else:
+                    response = client.chat.completions.create(
+                        model="grok-2-latest",
+                        messages=[
+                            {"role": "system", "content": "You are Evil Assistant, a chatbot with a deep, demonic tone."},
+                            {"role": "user", "content": f"Respond to this in English: {full_transcription}"},
+                        ],
+                        max_tokens=100
+                    )
+                    ai_response = response.choices[0].message.content
+                    print(f"Evil Assistant says: {ai_response}")
+                    output_file = "evil_output.wav"
+                    speak_text(ai_response, output_file, voice)
+                    os.remove(output_file)
 
                 # Prompt for another question
                 follow_up_file = "follow_up.wav"
@@ -141,12 +144,20 @@ def run_assistant():
 
                 if follow_up_transcription:  # If there's a follow-up question
                     print("Processing follow-up question...")
-                    with wave.open("full_query.wav", "wb") as wf:
-                        wf.setnchannels(CHANNELS)
-                        wf.setsampwidth(2)
-                        wf.setframerate(RATE)
-                        wf.writeframes(follow_up_audio.tobytes())
-                    continue  # Loop back with the follow-up as the new question
+                    full_transcription = follow_up_transcription  # Use the follow-up directly
+                    response = client.chat.completions.create(
+                        model="grok-2-latest",
+                        messages=[
+                            {"role": "system", "content": "You are Evil Assistant, a chatbot with a deep, demonic tone."},
+                            {"role": "user", "content": f"Respond to this in English: {full_transcription}"},
+                        ],
+                        max_tokens=100
+                    )
+                    ai_response = response.choices[0].message.content
+                    print(f"Evil Assistant says: {ai_response}")
+                    output_file = "evil_output.wav"
+                    speak_text(ai_response, output_file, voice)
+                    os.remove(output_file)
                 else:
                     print("No follow-up detected, returning to wake-up mode...")
                     break  # Exit to wake-up mode if silent
