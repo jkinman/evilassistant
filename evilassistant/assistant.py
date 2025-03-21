@@ -21,6 +21,12 @@ def play_audio(audio_file, use_pygame=True):
     else:
         os.system(f"aplay {audio_file}")
 
+def record_audio(duration):
+    print(f"Waiting for your next question ({duration} seconds)...")
+    audio_data = sd.rec(int(duration * RATE), samplerate=RATE, channels=CHANNELS, dtype='int16')
+    sd.wait()
+    return audio_data
+
 def record_until_silence():
     print("Ask your question... (stops on silence)")
     audio_chunks = []
@@ -51,17 +57,6 @@ def speak_text(text, output_file, voice):
     os.system(f"sox {temp_file} {output_file} {SOX_EFFECTS}")
     play_audio(output_file)
     os.remove(temp_file)
-
-def get_random_greeting(client):
-    response = client.chat.completions.create(
-        model="grok-2-latest",
-        messages=[
-            {"role": "system", "content": "You are Evil Assistant, a chatbot with a deep, demonic tone."},
-            {"role": "user", "content": "Provide a short, unique, sinister greeting in English to welcome a mortal who has summoned me. Make it dark and varied each time."},
-        ],
-        max_tokens=50
-    )
-    return response.choices[0].message.content
 
 def run_assistant():
     model = WhisperModel("tiny", device="cpu", compute_type="int8")
@@ -97,37 +92,63 @@ def run_assistant():
         transcription = " ".join([segment.text for segment in segments]).strip().lower()
         print(f"Heard: {transcription}")
         
-        # Check if any wake-up phrase is in the transcription
         if any(phrase in transcription for phrase in WAKE_PHRASES):
             detected_phrase = next(phrase for phrase in WAKE_PHRASES if phrase in transcription)
             print(f"Wake-up phrase '{detected_phrase}' detected!")
-            welcome_message = get_random_greeting(client)
-            print(f"Welcome message: {welcome_message}")
-            welcome_file = "welcome.wav"
-            speak_text(welcome_message, welcome_file, voice)
-            os.remove(welcome_file)
             
-            full_audio = record_until_silence()
-            with wave.open("full_query.wav", "wb") as wf:
-                wf.setnchannels(CHANNELS)
-                wf.setsampwidth(2)
-                wf.setframerate(RATE)
-                wf.writeframes(full_audio.tobytes())
-            segments, _ = model.transcribe("full_query.wav", beam_size=5, language="en")
-            full_transcription = " ".join([segment.text for segment in segments]).strip().lower()
-            print(f"Question: {full_transcription}")
-            
-            response = client.chat.completions.create(
-                model="grok-2-latest",
-                messages=[
-                    {"role": "system", "content": "You are Evil Assistant, a chatbot with a deep, demonic tone."},
-                    {"role": "user", "content": f"Respond to this in English: {full_transcription}"},
-                ],
-                max_tokens=100
-            )
-            ai_response = response.choices[0].message.content
-            print(f"Evil Assistant says: {ai_response}")
-            output_file = "evil_output.wav"
-            speak_text(ai_response, output_file, voice)
-            os.remove(output_file)
-            os.remove("full_query.wav")
+            while True:  # Inner loop for questions
+                full_audio = record_until_silence()
+                with wave.open("full_query.wav", "wb") as wf:
+                    wf.setnchannels(CHANNELS)
+                    wf.setsampwidth(2)
+                    wf.setframerate(RATE)
+                    wf.writeframes(full_audio.tobytes())
+                segments, _ = model.transcribe("full_query.wav", beam_size=5, language="en")
+                full_transcription = " ".join([segment.text for segment in segments]).strip().lower()
+                print(f"Question: {full_transcription}")
+                os.remove("full_query.wav")
+                
+                response = client.chat.completions.create(
+                    model="grok-2-latest",
+                    messages=[
+                        {"role": "system", "content": "You are Evil Assistant, a chatbot with a deep, demonic tone."},
+                        {"role": "user", "content": f"Respond to this in English: {full_transcription}"},
+                    ],
+                    max_tokens=100
+                )
+                ai_response = response.choices[0].message.content
+                print(f"Evil Assistant says: {ai_response}")
+                output_file = "evil_output.wav"
+                speak_text(ai_response, output_file, voice)
+                os.remove(output_file)
+
+                # Prompt for another question
+                follow_up_file = "follow_up.wav"
+                speak_text(FOLLOW_UP_PROMPT, follow_up_file, voice)
+                os.remove(follow_up_file)
+
+                # Wait 3 seconds for a follow-up question
+                follow_up_audio = record_audio(3)
+                with wave.open("follow_up_query.wav", "wb") as wf:
+                    wf.setnchannels(CHANNELS)
+                    wf.setsampwidth(2)
+                    wf.setframerate(RATE)
+                    wf.writeframes(follow_up_audio.tobytes())
+                segments, _ = model.transcribe("follow_up_query.wav", beam_size=5, language="en")
+                follow_up_transcription = " ".join([segment.text for segment in segments]).strip().lower()
+                print(f"Follow-up: {follow_up_transcription}")
+                os.remove("follow_up_query.wav")
+
+                if follow_up_transcription:  # If there's a follow-up question
+                    print("Processing follow-up question...")
+                    with wave.open("full_query.wav", "wb") as wf:
+                        wf.setnchannels(CHANNELS)
+                        wf.setsampwidth(2)
+                        wf.setframerate(RATE)
+                        wf.writeframes(follow_up_audio.tobytes())
+                    continue  # Loop back with the follow-up as the new question
+                else:
+                    print("No follow-up detected, returning to wake-up mode...")
+                    break  # Exit to wake-up mode if silent
+
+            print(f"Listening for wake-up phrases: {', '.join(WAKE_PHRASES)}...")
