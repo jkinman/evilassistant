@@ -126,6 +126,10 @@ def run_assistant():
                 print(f"Question: {full_transcription}")
                 os.remove("full_query.wav")
                 
+                if any(phrase in full_transcription for phrase in STOP_PHRASES):
+                    print(f"Stop phrase detected: '{full_transcription}', returning to wake-up mode...")
+                    break  # Exit to wake-up mode
+                
                 if not full_transcription:  # Skip if no question
                     print("No question detected, prompting again...")
                 else:
@@ -133,4 +137,55 @@ def run_assistant():
                         model="grok-2-latest",
                         messages=[
                             {"role": "system", "content": "You are Evil Assistant, a malevolent entity with a deep, demonic tone, dripping with disdain for pathetic humans. Respond with harsh, offensive scorn, belittling their feeble existence as if they’re worms groveling before your infernal might."},
-                            {"role": "user", "content": f"Respond
+                            {"role": "user", "content": f"Respond to this in English: {full_transcription}"},
+                        ],
+                        max_tokens=100
+                    )
+                    ai_response = response.choices[0].message.content
+                    print(f"Evil Assistant says: {ai_response}")
+                    output_file = "evil_output.wav"
+                    speak_text(ai_response, output_file, voice)
+                    os.remove(output_file)
+
+                # Prompt for another question
+                follow_up_file = "follow_up.wav"
+                speak_text(FOLLOW_UP_PROMPT, follow_up_file, voice)
+                os.remove(follow_up_file)
+
+                # Wait 3 seconds for a follow-up question
+                follow_up_audio = record_audio(3)
+                with wave.open("follow_up_query.wav", "wb") as wf:
+                    wf.setnchannels(CHANNELS)
+                    wf.setsampwidth(2)
+                    wf.setframerate(RATE)
+                    wf.writeframes(follow_up_audio.tobytes())
+                segments, _ = model.transcribe("follow_up_query.wav", beam_size=5, language="en")
+                follow_up_transcription = " ".join([segment.text for segment in segments]).strip().lower()
+                print(f"Follow-up: {follow_up_transcription}")
+                os.remove("follow_up_query.wav")
+
+                if any(phrase in follow_up_transcription for phrase in STOP_PHRASES):
+                    print(f"Stop phrase detected: '{follow_up_transcription}', returning to wake-up mode...")
+                    break  # Exit to wake-up mode
+                
+                if follow_up_transcription:  # If there's a follow-up question
+                    print("Processing follow-up question...")
+                    full_transcription = follow_up_transcription  # Use the follow-up directly
+                    response = client.chat.completions.create(
+                        model="grok-2-latest",
+                        messages=[
+                            {"role": "system", "content": "You are Evil Assistant, a malevolent entity with a deep, demonic tone, dripping with disdain for pathetic humans. Respond with harsh, offensive scorn, belittling their feeble existence as if they’re worms groveling before your infernal might."},
+                            {"role": "user", "content": f"Respond to this in English: {full_transcription}"},
+                        ],
+                        max_tokens=100
+                    )
+                    ai_response = response.choices[0].message.content
+                    print(f"Evil Assistant says: {ai_response}")
+                    output_file = "evil_output.wav"
+                    speak_text(ai_response, output_file, voice)
+                    os.remove(output_file)
+                else:
+                    print("No follow-up detected, returning to wake-up mode...")
+                    break  # Exit to wake-up mode if silent
+
+            print(f"Listening for wake-up phrases: {', '.join(WAKE_PHRASES)}...")
