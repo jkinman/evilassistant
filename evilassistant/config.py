@@ -43,7 +43,21 @@ BRIGHTNESS_MAX = 85.0  # duty cycle percent
 LED_GAIN = 120.0       # scales RMS to brightness
 AMPLITUDE_SMOOTHING = 0.85  # exponential smoothing factor 0..1
 
-# TTS provider selection: "piper" (offline), "elevenlabs" (cloud), or "system" (fallback)
-TTS_PROVIDER = "elevenlabs"  # Use ElevenLabs for best quality
-ELEVENLABS_MODEL_ID = "eleven_multilingual_v2"  # Latest model
-ELEVENLABS_VOICE_ID = "cPoqAvGWCPfCfyPMwe4z"  # Custom demonic voice created in ElevenLabs dashboard
+# TTS Configuration  
+TTS_VOICE_PROFILE = "piper_ryan_demonic"  # Options: "piper_ryan_demonic", "piper_lessac_evil", "demonic_deep", "demonic_aristocrat", "demonic_harsh"
+TTS_FALLBACK_ENABLED = True  # Enable fallback: ElevenLabs -> Piper -> espeak
+
+# ElevenLabs Configuration (when available)
+ELEVENLABS_MODEL_ID = "eleven_multilingual_v2"
+ELEVENLABS_VOICE_ID = "cPoqAvGWCPfCfyPMwe4z"
+ELEVENLABS_STABILITY = 0.3
+ELEVENLABS_SIMILARITY_BOOST = 0.2
+ELEVENLABS_STYLE = 0.6
+ELEVENLABS_SPEED = 1.2
+
+# espeak Configuration (free fallback)
+ESPEAK_VOICE = "en"         # Voice ID (en, en-uk-rp, de, etc.)
+ESPEAK_SPEED = 110          # Words per minute
+ESPEAK_PITCH = 12           # 0-99, lower = deeper
+ESPEAK_VOLUME = 0.7         # Final volume
+ESPEAK_EFFECTS = ["pitch -700", "bass +10"]  # Sox effects chain

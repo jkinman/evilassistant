@@ -172,5 +172,17 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Audio files (except model files)
 *.wav
 *.mp3
+
+# Temporary files - safe to delete
+temp/
+**/temp/
+test_*.wav
+test_*.mp3
+*test*.wav
+*test*.mp3
+/archive
+/evilassistant/models

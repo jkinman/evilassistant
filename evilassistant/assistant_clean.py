@@ -144,7 +144,7 @@ class SmartHomeHandler:
     def is_light_command(self, text):
         """Check if text contains light control commands."""
         text_lower = text.lower()
-        return any(word in text_lower for word in ['light', 'lights', 'lamp', 'brightness'])
+        return any(word in text_lower for word in ['light', 'lights', 'lamp', 'brightness', 'color', 'colour', 'red', 'blue', 'green', 'purple', 'yellow', 'orange', 'pink', 'white'])
     
     def extract_brightness_percentage(self, text):
         """Extract brightness percentage from text."""
@@ -163,33 +163,54 @@ class SmartHomeHandler:
         text_lower = text.lower()
         
         try:
+            # Handle color changes first
+            color_commands = {
+                'red': (65535, 254, 254),      # Hue, Saturation, Brightness
+                'blue': (46920, 254, 254),
+                'green': (25500, 254, 254),
+                'purple': (56100, 254, 254),
+                'yellow': (12750, 254, 254),
+                'orange': (8618, 254, 254),
+                'pink': (56100, 76, 254),
+                'white': (0, 0, 254),
+            }
+            
+            for color_name, (hue, sat, bri) in color_commands.items():
+                if color_name in text_lower:
+                    for light in self.hue_bridge.lights:
+                        light.on = True
+                        light.hue = hue
+                        light.saturation = sat
+                        light.brightness = bri
+                    return f"The lights blaze with {color_name} fire, mortal. My darkness adapts to all hues."
+            
+            # Handle brightness changes
+            percentage = self.extract_brightness_percentage(text)
+            if percentage and ('brightness' in text_lower or '%' in text_lower or 'percent' in text_lower):
+                brightness = int(percentage * 2.54)  # Convert % to 0-254
+                for light in self.hue_bridge.lights:
+                    light.on = True
+                    light.brightness = brightness
+                return f"The lights bow to my will at {percentage}% brightness, mortal."
+            
+            # Handle on/off commands
             if 'off' in text_lower or 'turn off' in text_lower:
-                # Turn off all lights
                 for light in self.hue_bridge.lights:
                     light.on = False
                 return "The lights have been extinguished, mortal. Darkness consumes you."
                     
             elif 'on' in text_lower or 'turn on' in text_lower:
-                # Turn on all lights to full brightness
                 for light in self.hue_bridge.lights:
                     light.on = True
                     light.brightness = 254
                 return "Let there be light, though it pales before my darkness."
-                    
-            elif any(word in text_lower for word in ['dim', 'brightness', '%', 'percent']):
-                percentage = self.extract_brightness_percentage(text)
-                if percentage:
-                    brightness = int(percentage * 2.54)  # Convert % to 0-254
-                    for light in self.hue_bridge.lights:
-                        light.on = True
-                        light.brightness = brightness
-                    return f"The lights bow to my will at {percentage}% brightness, mortal."
-                else:
-                    # Default dim to 50%
-                    for light in self.hue_bridge.lights:
-                        light.on = True
-                        light.brightness = 127
-                    return "The lights dim to half their strength, as befits your presence."
+            
+            # Handle dim command (no specific percentage)
+            elif 'dim' in text_lower:
+                for light in self.hue_bridge.lights:
+                    light.on = True
+                    light.brightness = 127  # 50%
+                return "The lights dim to half their strength, as befits your presence."
                         
         except Exception as e:
             print(f"Smart home error: {e}")
@@ -230,53 +251,96 @@ class AudioHandler:
     
     @staticmethod
     def synthesize_speech(text, output_file):
-        """Generate speech using ElevenLabs."""
-        api_key = os.getenv("ELEVENLABS_API_KEY")
-        if not api_key or not ELEVENLABS_VOICE_ID:
-            print("ELEVENLABS_API_KEY or ELEVENLABS_VOICE_ID missing")
-            return False
-            
-        url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}"
-        headers = {
-            "xi-api-key": api_key,
-            "accept": "audio/mpeg",
-            "content-type": "application/json",
-        }
-        payload = {
-            "text": text,
-            "model_id": ELEVENLABS_MODEL_ID,
-            "voice_settings": {
-                "stability": 0.3,      # Higher stability for cleaner audio
-                "similarity_boost": 0.2,  # Maintain voice character while reducing distortion
-                "style": 0.6,          # Moderate style for demonic effect without clipping
-                "use_speaker_boost": False,  # Keep disabled to prevent clipping
-                "speed": 1.2           # Increase speech speed for more dynamic delivery
-            }
-        }
-        
+        """Generate speech using configurable TTS engine."""
         try:
-            r = requests.post(url, headers=headers, json=payload, timeout=60)
-            r.raise_for_status()
+            from .tts import create_configured_engine
+            from .config import TTS_VOICE_PROFILE
             
-            temp_mp3 = output_file.replace('.wav', '_temp.mp3')
-            with open(temp_mp3, "wb") as f:
-                f.write(r.content)
+            # Create configured TTS engine with fallback
+            engine = create_configured_engine(TTS_VOICE_PROFILE)
             
-            # Convert MP3 to WAV with ultra-conservative anti-clipping processing + fade-in
-            sox_effects = f"sox {temp_mp3} {output_file} fade 0.05 vol 0.1"
-            os.system(sox_effects)
-            
-            if os.path.exists(temp_mp3):
-                os.remove(temp_mp3)
-            
-            return True
+            success = engine.synthesize(text, output_file)
+            if success:
+                provider = engine.get_current_provider()
+                print(f"✅ TTS successful with {provider}")
+                return True
+            else:
+                print("❌ All TTS providers failed")
+                return False
+                
         except Exception as e:
-            print(f"ElevenLabs TTS failed: {e}")
+            print(f"TTS Engine error: {e}")
             return False
     
     @staticmethod
+    def play_audio_file_with_interrupt(file_path, vad_processor, model):
+        """Play audio file with interrupt capability for stop commands."""
+        import threading
+        import time
+        
+        try:
+            pygame.mixer.music.load(file_path)
+            pygame.mixer.music.play()
+            
+            # Monitor for stop commands during playback
+            while pygame.mixer.music.get_busy():
+                # Quick check for stop command (non-blocking)
+                try:
+                    # Very short recording to check for "stop" 
+                    import sounddevice as sd
+                    import numpy as np
+                    
+                    chunk_size = int(vad_processor.sample_rate * 0.2)  # 200ms
+                    chunk = sd.rec(chunk_size, samplerate=vad_processor.sample_rate, 
+                                  channels=1, dtype='float32')
+                    sd.wait()
+                    
+                    # Quick energy check
+                    energy = float(np.sqrt(np.mean(chunk.astype(np.float32) ** 2)) * 32767)
+                    if energy > vad_processor.energy_threshold * 2:  # Higher threshold during playback
+                        # Quick transcription check for stop words
+                        import tempfile
+                        import wave
+                        
+                        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_file:
+                            with wave.open(tmp_file.name, 'wb') as wf:
+                                wf.setnchannels(1)
+                                wf.setsampwidth(2)
+                                wf.setframerate(vad_processor.sample_rate)
+                                audio_int16 = (chunk * 32767).astype(np.int16)
+                                wf.writeframes(audio_int16.tobytes())
+                            
+                            try:
+                                segments, _ = model.transcribe(tmp_file.name, beam_size=1, language="en")
+                                transcription = " ".join([segment.text for segment in segments]).strip().lower()
+                                
+                                if any(word in transcription for word in ['stop', 'shut up', 'be silent', 'unsummon']):
+                                    print("🛑 Stop command detected during playback!")
+                                    pygame.mixer.music.stop()
+                                    import os
+                                    if os.path.exists(tmp_file.name):
+                                        os.unlink(tmp_file.name)
+                                    return True  # Interrupted
+                            except:
+                                pass  # Ignore transcription errors during playback
+                            finally:
+                                import os
+                                if os.path.exists(tmp_file.name):
+                                    os.unlink(tmp_file.name)
+                    
+                    pygame.time.wait(100)  # Small delay between checks
+                    
+                except Exception:
+                    pygame.time.wait(100)  # Fallback delay
+                    
+        except Exception as e:
+            print(f"Error playing audio: {e}")
+        
+        return False  # Completed normally
+    
+    @staticmethod
     def play_audio_file(file_path):
-        """Play audio file using pygame."""
+        """Simple audio playback without interruption."""
         try:
             pygame.mixer.music.load(file_path)
             pygame.mixer.music.play()
@@ -331,10 +395,12 @@ class AIHandler:
 class ConversationHandler:
     """Handles conversation flow and question processing."""
     
-    def __init__(self, smart_home_handler, audio_handler, ai_handler):
+    def __init__(self, smart_home_handler, audio_handler, ai_handler, vad_processor=None, model=None):
         self.smart_home = smart_home_handler
         self.audio = audio_handler
         self.ai = ai_handler
+        self.vad_processor = vad_processor
+        self.model = model
     
     def process_question(self, question):
         """Process a question through smart home then AI if needed."""
@@ -351,12 +417,19 @@ class ConversationHandler:
         return self.ai.get_ai_response(question)
     
     def handle_response(self, response):
-        """Handle response synthesis and playback."""
+        """Handle response synthesis and playback with interrupt capability."""
         print(f"Evil Assistant says: {response}")
         print("🔥 Using ElevenLabs demon voice...")
         
         if self.audio.synthesize_speech(response, "response.wav"):
-            self.audio.play_audio_file("response.wav")
+            # Use interruptible playback if VAD and model are available
+            if self.vad_processor and self.model:
+                interrupted = self.audio.play_audio_file_with_interrupt("response.wav", self.vad_processor, self.model)
+                if interrupted:
+                    print("🛑 Response interrupted by stop command")
+            else:
+                self.audio.play_audio_file("response.wav")
+                
             if os.path.exists("response.wav"):
                 os.remove("response.wav")
 
@@ -376,7 +449,7 @@ def run_clean_assistant():
     smart_home_handler = SmartHomeHandler(smart_home_ctrl)
     audio_handler = AudioHandler()
     ai_handler = AIHandler()
-    conversation_handler = ConversationHandler(smart_home_handler, audio_handler, ai_handler)
+    conversation_handler = ConversationHandler(smart_home_handler, audio_handler, ai_handler, vad, model)
     
     print(f"Listening for wake-up phrases: {', '.join(WAKE_PHRASES)}...")
     
