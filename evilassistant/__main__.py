@@ -2,6 +2,16 @@ import sys
 import asyncio
 import logging
 
+# Auto-detect and apply Pi optimizations if running on Raspberry Pi
+try:
+    from .config_pi import is_raspberry_pi, check_pi_temperature
+    if is_raspberry_pi():
+        print("🍓 Raspberry Pi detected - optimizations applied")
+        # Temperature check on startup
+        check_pi_temperature()
+except ImportError:
+    pass  # Pi config not available
+
 def main():
     """Main entry point with fallback support"""
     

@@ -1,96 +1,232 @@
-# Evil Assistant
+# Evil Assistant 👹
 
-A demonic voice assistant powered by xAI's Grok API, using Piper TTS and Sox for a terrifying voice.
+A demonic voice assistant with enhanced TTS, smart home integration, and Raspberry Pi support. Features advanced voice activity detection, modular TTS providers, and a terrifyingly realistic demonic voice.
 
-## Installation
+## ✨ **Features**
 
-1. Install system dependencies:
-   ```bash
-   sudo apt install sox
-2. Install the package:
-   ```bash
-   pip install .
+- 🎭 **Enhanced Demonic Voice** - Neural TTS with pitch-shifting and audio effects
+- 🏠 **Smart Home Control** - Philips Hue light control with voice commands
+- 🍓 **Raspberry Pi Optimized** - Auto-detects Pi hardware with GPIO LED control
+- 🎤 **Advanced VAD** - Voice activity detection with speech-based chunking
+- 🔄 **Modular TTS** - ElevenLabs, Piper, and espeak with automatic fallback
+- 🧠 **AI Powered** - xAI Grok integration for intelligent responses
+- 🛡️ **Robust Architecture** - Clean, modular codebase with proper error handling
 
-3. Set the API key:
-   ```bash
-   export XAI_API_KEY="your_xai_api_key_here"
+## 🚀 **Quick Start**
 
-4. Run:
-   ```bash
-   evilassistant
-
-
-## Run on Raspberry Pi
-
-Options to Keep It Running
-1. Run in Background with nohup (Simple)
-How It Works: nohup (no hangup) detaches the process from your terminal, letting it run after logout.
-
-Steps:
-Start the app with nohup:
-   ```bash
-cd ~/evilassistant
-nohup evilassistant &
-
-& puts it in the background; nohup prevents termination on logout.
-
-Check it’s running:
-   ```bash
-
-ps aux | grep evilassistant
-
-Look for the process (e.g., python3 ... evilassistant).
-
-Exit SSH: exit—it’ll keep running.
-
-Stop It Later:
-   ```bash
-pkill -f evilassistant
-
-Output: Logs go to nohup.out in ~/evilassistant/—check with cat nohup.out.
-
-Pros: Quick, no setup needed.
-
-Cons: No auto-restart on crash or reboot.
-
-## Hardware: LED Light Box via GPIO PWM
-
-- Use a 3.3V logic-level MOSFET or a PWM LED driver between Raspberry Pi `GPIO18` (BCM) and the LED light box dimmer input. Do not drive the LED directly from the GPIO.
-- Configure the dimmer to accept a 3.3V PWM signal (or use level shifting/driver as needed). Frequency used: 1 kHz.
-- The code modulates brightness proportional to output audio loudness using an envelope follower.
-
-### Wiring (typical MOSFET low-side)
-- Gate: Raspberry Pi `GPIO18` through a small resistor (e.g., 150 Ω)
-- Source: GND
-- Drain: LED negative terminal; LED positive to 12V/appropriate supply via current-limited driver
-- Add a flyback diode if driving inductive loads (not needed for pure LEDs with proper driver)
-
-### Configurable settings in `evilassistant/config.py`
-- `GPIO_ENABLED`: set `True` to enable PWM dimming
-- `GPIO_PIN`: default `18` (supports hardware PWM)
-- `PWM_FREQUENCY_HZ`: default `1000`
-- `BRIGHTNESS_MIN` / `BRIGHTNESS_MAX`: duty-cycle limits (percent)
-- `LED_GAIN`: maps audio amplitude to brightness
-- `AMPLITUDE_SMOOTHING`: 0..1 smoothing factor for brightness changes
-
-## Better Wake Word Reliability
-
-- The assistant now requires `WAKE_CONFIRM_WINDOWS` consecutive detection windows containing a wake phrase to trigger, reducing false wakes.
-- Whisper VAD is enabled during transcription.
-
-Tune in `evilassistant/config.py`:
-- `CHUNK_DURATION`: length (s) of wake-listen windows
-- `WAKE_CONFIRM_WINDOWS`: consecutive hits required
-- Adjust/add `WAKE_PHRASES` as desired
-
-## Demon Voice Improvements
-
-- Enhanced SoX chain for darker timbre: bass boost, pitch drop, slight slowdown, saturation, and reverb. Tweak `SOX_EFFECTS` if needed.
-
-Example values:
-```text
-SOX_EFFECTS = "norm -3 bass +6 treble -3 pitch -700 tempo 0.88 overdrive 12:12 reverb 20 50 100 100 0 -t"
+### **On Your Computer**
+```bash
+git clone https://github.com/YOUR_USERNAME/evilassistant.git
+cd evilassistant
+pip install -e .
+python -m evilassistant --vad --clean
 ```
 
-If Piper output is too bright or thin, try different voices (e.g., male voices) and layer effects. You can also cascade formant shifts using `sox mcompand` and `stretch` if CPU allows.
+### **On Raspberry Pi** 🍓
+```bash
+# SSH to your Pi, then:
+git clone https://github.com/YOUR_USERNAME/evilassistant.git
+cd evilassistant
+chmod +x setup_pi.sh
+./setup_pi.sh
+```
 
+**See [`QUICK_PI_SETUP.md`](QUICK_PI_SETUP.md) for detailed Pi instructions.**
+
+## ⚙️ **Configuration**
+
+Create a `.env` file with your API keys:
+
+```env
+# Required API Keys
+XAI_API_KEY=your_xai_api_key_here
+ELEVENLABS_API_KEY=your_elevenlabs_key_here
+ELEVENLABS_VOICE_ID=your_voice_id_here
+
+# Smart Home (Optional)
+PHILIPS_HUE_BRIDGE_IP=192.168.1.xxx
+
+# Voice Configuration
+TTS_VOICE_PROFILE=piper_ryan_demonic
+TTS_FALLBACK_ENABLED=true
+```
+
+## 🎭 **Voice Profiles**
+
+Choose from several demonic voice configurations:
+
+- `piper_ryan_demonic` - Deep male neural voice with enhanced demonic effects
+- `piper_ryan_dark_gritty` - Alternative with overdrive distortion
+- `piper_lessac_evil` - Versatile neural voice with lighter effects
+- `elevenlabs_premium` - High-quality cloud TTS (requires credits)
+- `demonic_deep`, `demonic_aristocrat`, `demonic_harsh` - espeak fallbacks
+
+## 🏠 **Smart Home Commands**
+
+Control your Philips Hue lights with voice:
+
+```
+"Dark one, turn the lights red"
+"Set brightness to 50 percent"
+"Turn off the lights"
+"Make the lights blue"
+```
+
+## 🎤 **Wake Phrases**
+
+Summon the Evil Assistant with any of these phrases:
+
+- "Evil Assistant"
+- "Dark One" 
+- "Cthulhu"
+- "I summon you"
+
+## 🔧 **Hardware Setup (Raspberry Pi)**
+
+### **GPIO LED Control**
+The assistant automatically detects Raspberry Pi hardware and enables GPIO features:
+
+- **GPIO Pin**: 18 (hardware PWM)
+- **LED Control**: Brightness follows voice output volume
+- **MOSFET**: Use logic-level MOSFET for LED panel control
+- **Safety**: Never drive LEDs directly from GPIO pins
+
+### **Audio Setup**
+- **Microphone**: USB microphone recommended
+- **Speakers**: USB, 3.5mm, or Bluetooth
+- **Quality**: 16kHz sampling rate optimized for Pi performance
+
+## 📊 **Performance**
+
+### **Raspberry Pi 4 Benchmarks**
+- **Wake detection**: ~100ms
+- **Speech transcription**: 2-5 seconds
+- **AI response**: 1-3 seconds
+- **TTS synthesis**: 1-2 seconds
+- **Total response**: 5-10 seconds
+
+### **Resource Usage**
+- **RAM**: 1-2GB (auto-optimized based on available memory)
+- **CPU**: 50-80% during processing
+- **Storage**: ~2GB including models
+
+## 🧪 **Advanced Usage**
+
+### **Different Assistant Modes**
+```bash
+# Clean modular version (recommended)
+python -m evilassistant --vad --clean
+
+# VAD-based speech detection
+python -m evilassistant --vad
+
+# Default mode
+python -m evilassistant
+```
+
+### **Voice Testing**
+```bash
+# Test TTS system
+python -c "
+from evilassistant.tts import create_configured_engine
+engine = create_configured_engine('piper_ryan_demonic')
+engine.synthesize('Mortal fool, tremble before my voice!', 'test.wav')
+"
+```
+
+### **Service Management (Pi)**
+```bash
+# Enable auto-start
+sudo systemctl enable evil-assistant.service
+
+# Check status
+sudo systemctl status evil-assistant.service
+
+# View logs
+sudo journalctl -u evil-assistant.service -f
+```
+
+## 🏗️ **Architecture**
+
+### **Modular TTS System**
+```
+evilassistant/tts/
+├── providers/
+│   ├── elevenlabs.py    # Premium cloud TTS
+│   ├── piper.py         # Local neural TTS  
+│   └── espeak.py        # Lightweight fallback
+├── engine.py            # Fallback orchestration
+└── config.py            # Voice profiles
+```
+
+### **Component Overview**
+- **VAD**: `simple_vad.py` - Voice activity detection
+- **Smart Home**: `smart_home.py` - Device integration
+- **AI**: xAI Grok integration for responses
+- **Audio**: pygame + sounddevice for I/O
+- **Config**: Auto-Pi optimization in `config_pi.py`
+
+## 📚 **Documentation**
+
+- [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md) - Detailed architecture overview
+- [`RASPBERRY_PI_SETUP.md`](RASPBERRY_PI_SETUP.md) - Comprehensive Pi guide
+- [`QUICK_PI_SETUP.md`](QUICK_PI_SETUP.md) - Fast Pi deployment
+- [`TTS_REFACTOR_SUMMARY.md`](TTS_REFACTOR_SUMMARY.md) - TTS system details
+
+## 🔮 **Future Features**
+
+- Voice caching for common responses
+- Additional TTS providers (Azure, AWS Polly, Coqui)
+- Ollama integration for local LLM
+- Enhanced smart home device support
+- Real-time audio streaming
+
+## 🚨 **Troubleshooting**
+
+### **Common Issues**
+
+**Audio not working:**
+```bash
+aplay -l  # Check audio devices
+sudo raspi-config  # Configure audio output
+```
+
+**High CPU/temperature:**
+```bash
+vcgencmd measure_temp  # Check Pi temperature
+# Ensure good cooling and ventilation
+```
+
+**TTS not working:**
+```bash
+# Test espeak fallback
+espeak "Test message"
+
+# Check Piper models
+ls -la evilassistant/models/
+```
+
+**Memory issues:**
+```bash
+free -h  # Check available memory
+# Pi config auto-adjusts based on available RAM
+```
+
+## 🤝 **Contributing**
+
+The codebase uses a clean, modular architecture. Key principles:
+
+- **Single Responsibility** - Each module has one job
+- **Dependency Injection** - Easy testing and mocking
+- **Graceful Fallbacks** - Always have backup options
+- **Pi Optimization** - Auto-detect and optimize for hardware
+
+## 📄 **License**
+
+MIT License - Feel free to summon your own demons! 👹
+
+---
+
+**Unleash the Evil Assistant and let darkness consume your smart home!** 🔥🏠👹
+
+*"Mortal fool, your commands shall be obeyed... for now."*
