@@ -6,18 +6,20 @@ A demonic voice assistant powered by xAI's Grok API, using Piper TTS and Sox for
 
 1. Install system dependencies:
    ```bash
-   sudo apt install sox
+   sudo apt install sox rubberband-cli
+   ```
 2. Install the package:
    ```bash
    pip install .
-
+   ```
 3. Set the API key:
    ```bash
    export XAI_API_KEY="your_xai_api_key_here"
-
+   ```
 4. Run:
    ```bash
    evilassistant
+   ```
 
 
 ## Run on Raspberry Pi
@@ -29,24 +31,23 @@ How It Works: nohup (no hangup) detaches the process from your terminal, letting
 Steps:
 Start the app with nohup:
    ```bash
-cd ~/evilassistant
-nohup evilassistant &
-
+   cd ~/evilassistant
+   nohup evilassistant &
+   ```
 & puts it in the background; nohup prevents termination on logout.
 
 Check it’s running:
    ```bash
-
-ps aux | grep evilassistant
-
+   ps aux | grep evilassistant
+   ```
 Look for the process (e.g., python3 ... evilassistant).
 
 Exit SSH: exit—it’ll keep running.
 
 Stop It Later:
    ```bash
-pkill -f evilassistant
-
+   pkill -f evilassistant
+   ```
 Output: Logs go to nohup.out in ~/evilassistant/—check with cat nohup.out.
 
 Pros: Quick, no setup needed.
@@ -94,3 +95,16 @@ SOX_EFFECTS = "norm -3 bass +6 treble -3 pitch -700 tempo 0.88 overdrive 12:12 r
 
 If Piper output is too bright or thin, try different voices (e.g., male voices) and layer effects. You can also cascade formant shifts using `sox mcompand` and `stretch` if CPU allows.
 
+## Wake Word with Porcupine (optional)
+
+- Set `USE_PORCUPINE = True` in `evilassistant/config.py`.
+- Set env var with your access key:
+```bash
+export PORCUPINE_ACCESS_KEY="..."
+```
+- Use built-in keywords via `PORCUPINE_KEYWORDS = ["jarvis"]` or point to custom `.ppn` files with `PORCUPINE_KEYWORD_PATHS`.
+
+## Cloud Demon Voice (optional)
+
+- Set `TTS_PROVIDER = "elevenlabs"` and configure `ELEVENLABS_VOICE_ID` and model.
+- Prefer streaming APIs for lower latency; PWM brightness will follow playback in real time.

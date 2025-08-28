@@ -1,0 +1,114 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "evilassistant"
+version = "0.2.0"
+description = "A real-time demonic AI voice assistant optimized for Raspberry Pi"
+authors = [{name = "jkinman"}]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    # Core audio processing - optimized for real-time
+    "sounddevice>=0.4.6",
+    "numpy>=1.24.0",
+    "scipy>=1.11.0",  # For real-time DSP effects
+    "webrtcvad>=2.0.10",  # Fast voice activity detection
+    
+    # Wake word detection - multiple options for reliability
+    "openwakeword>=0.5.1",  # Primary: fastest, most reliable
+    "pvporcupine>=3.0.2",   # Fallback: commercial but good
+    
+    # Speech recognition - tiered approach
+    "vosk>=0.3.45",         # Primary: fast local STT
+    "faster-whisper>=0.10.0", # Fallback: better accuracy
+    
+    # LLM processing - local-first
+    "ollama>=0.1.7",        # Local LLM server
+    "openai>=1.0.0",        # For cloud fallback and compatibility
+    "requests>=2.31.0",
+    
+    # TTS - multiple high-quality options
+    "TTS>=0.22.0",          # Coqui-TTS for voice cloning
+    "piper-tts>=1.2.0",     # Lightweight fallback
+    
+    # Real-time audio effects (replacing Sox)
+    "pyaudio>=0.2.11",      # Low-latency audio I/O
+    "librosa>=0.10.0",      # Audio analysis and effects
+    "soundfile>=0.12.1",    # Fast audio file I/O
+    
+    # Smart home integration
+    "aiohttp>=3.8.0",       # Async HTTP for faster API calls
+    "phue>=1.1",            # Philips Hue control
+    "pychromecast>=13.0.0", # Google Home/Chromecast control
+    "homeassistant-api>=0.1.0", # Home Assistant integration
+    
+    # Performance and utilities
+    "python-dotenv>=1.0.1",
+    "psutil>=5.9.0",        # System monitoring
+    "threading-extensions>=0.1.0", # Better threading utilities
+    
+    # Optional GPU acceleration (install manually if needed)
+    # "torch>=2.0.0",        # For GPU-accelerated models
+    # "onnxruntime-gpu>=1.15.0", # GPU inference
+    
+    # Development and monitoring
+    "colorlog>=6.7.0",      # Colored logging
+    "rich>=13.0.0",         # Beautiful terminal output
+]
+
+[project.optional-dependencies]
+# High-performance setup for Pi 4+ with adequate RAM
+performance = [
+    "torch>=2.0.0",
+    "onnxruntime>=1.15.0",
+    "numba>=0.58.0",        # JIT compilation for speed
+]
+
+# Development tools
+dev = [
+    "pytest>=7.4.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.5.0",
+]
+
+# GPU acceleration (for future hardware upgrades)
+gpu = [
+    "torch>=2.0.0",
+    "onnxruntime-gpu>=1.15.0",
+    "cupy>=12.0.0",         # GPU-accelerated NumPy
+]
+
+[project.scripts]
+evilassistant = "evilassistant.__main__:main"
+evilassistant-setup = "evilassistant.setup:download_models"
+evilassistant-test = "evilassistant.test:test_performance"
+
+[project.urls]
+Homepage = "https://github.com/jkinman/evilassistant"
+Repository = "https://github.com/jkinman/evilassistant"
+Issues = "https://github.com/jkinman/evilassistant/issues"
+
+[tool.setuptools]
+packages = ["evilassistant"]
+
+[tool.setuptools.package-data]
+evilassistant = ["models/*", "samples/*", "effects/*"]
+
+# Development tool configurations
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"
