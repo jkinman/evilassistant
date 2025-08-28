@@ -247,7 +247,7 @@ class AudioHandler:
                 wf.writeframes(audio_int16.tobytes())
             
             try:
-                                segments, _ = model.transcribe(
+                segments, _ = model.transcribe(
                     tmp_file.name, 
                     beam_size=WHISPER_BEAM_SIZE,
                     language=WHISPER_LANGUAGE, 
