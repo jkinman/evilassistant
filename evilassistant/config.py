@@ -1,9 +1,9 @@
 # ~/evilassistant/evilassistant/config.py
 RATE = 16000  # Lower sample rate for faster processing
-CHUNK_DURATION = 2  # Optimal 2-second chunks for wake detection balance
+CHUNK_DURATION = 1.5  # Faster VAD chunking for better responsiveness
 CHANNELS = 1
-SILENCE_THRESHOLD = 800
-SILENCE_DURATION = 0.8  # Much faster response - 0.8 seconds instead of 1.5
+SILENCE_THRESHOLD = 1200  # Higher threshold for USB mic (less noise pickup)
+SILENCE_DURATION = 0.6  # Optimized for faster STT response
 
 WAKE_PHRASES = ["evil assistant", "evil assistance", "i summon you", "dark one", "dark 1", "cthulhu", "summon"]
 STOP_PHRASES = ["shut up", "be silent", "stop", "unsummon"]
@@ -61,3 +61,16 @@ ESPEAK_SPEED = 110          # Words per minute
 ESPEAK_PITCH = 12           # 0-99, lower = deeper
 ESPEAK_VOLUME = 0.7         # Final volume
 ESPEAK_EFFECTS = ["pitch -700", "bass +10"]  # Sox effects chain
+
+# STT Optimizations for faster processing
+WHISPER_MODEL = "base"            # Good balance of speed/accuracy
+WHISPER_COMPUTE_TYPE = "int8"     # Quantized for speed on Pi
+WHISPER_BEAM_SIZE = 1             # Fastest decoding
+WHISPER_NUM_WORKERS = 2           # Use Pi cores efficiently
+WHISPER_LANGUAGE = "en"           # Skip auto-detection
+WHISPER_VAD_FILTER = True         # Use built-in VAD
+
+# Audio preprocessing optimizations
+AUDIO_NOISE_REDUCTION = True      # Clean up audio input
+AUDIO_GAIN_NORMALIZATION = True   # Normalize volume levels
+AUDIO_AUTO_GAIN = True            # Automatic gain control for USB mic

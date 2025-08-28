@@ -96,7 +96,13 @@ class AssistantComponents:
     def initialize_whisper(self):
         """Initialize Whisper model for speech recognition."""
         print("Loading Whisper model...")
-        self.model = WhisperModel("tiny", device="cpu", compute_type="int8", num_workers=1)
+        # Use optimized Whisper settings from config
+        self.model = WhisperModel(
+            WHISPER_MODEL, 
+            device="cpu", 
+            compute_type=WHISPER_COMPUTE_TYPE,
+            num_workers=WHISPER_NUM_WORKERS
+        )
         print("✅ Whisper model loaded")
         return self.model
     
@@ -241,8 +247,12 @@ class AudioHandler:
                 wf.writeframes(audio_int16.tobytes())
             
             try:
-                segments, _ = model.transcribe(tmp_file.name, beam_size=3, 
-                                             language="en", vad_filter=True)
+                                segments, _ = model.transcribe(
+                    tmp_file.name, 
+                    beam_size=WHISPER_BEAM_SIZE,
+                    language=WHISPER_LANGUAGE, 
+                    vad_filter=WHISPER_VAD_FILTER
+                )
                 transcription = " ".join([segment.text for segment in segments]).strip().lower()
                 return transcription
             finally:
@@ -311,7 +321,12 @@ class AudioHandler:
                                 wf.writeframes(audio_int16.tobytes())
                             
                             try:
-                                segments, _ = model.transcribe(tmp_file.name, beam_size=1, language="en")
+                                segments, _ = model.transcribe(
+                                    tmp_file.name, 
+                                    beam_size=WHISPER_BEAM_SIZE,
+                                    language=WHISPER_LANGUAGE,
+                                    vad_filter=WHISPER_VAD_FILTER
+                                )
                                 transcription = " ".join([segment.text for segment in segments]).strip().lower()
                                 
                                 if any(word in transcription for word in ['stop', 'shut up', 'be silent', 'unsummon']):
