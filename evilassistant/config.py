@@ -5,7 +5,7 @@ CHANNELS = 1
 SILENCE_THRESHOLD = 1200  # Higher threshold for USB mic (less noise pickup)
 SILENCE_DURATION = 0.6  # Optimized for faster STT response
 
-WAKE_PHRASES = ["evil assistant", "evil assistance", "dark one", "dark 1", "cthulhu", "summon"]
+WAKE_PHRASES = ["hey bro", "hey dude", "hey guy", "evil assistant", "evil assistance", "dark one", "dark 1", "cthulhu", "summon"]
 STOP_PHRASES = ["shut up", "be silent", "stop", "unsummon"]
 
 FOLLOW_UP_PROMPT = "What else do you seek, mortal? I await your next command!"

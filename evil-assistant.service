@@ -7,17 +7,20 @@ RequiresMountsFor=/home
 
 [Service]
 Type=simple
-User=pi
-Group=pi
-WorkingDirectory=/home/pi/evilassistant
+User=jkinman
+Group=jkinman
+SupplementaryGroups=audio
+WorkingDirectory=/home/jkinman/evilassistant
 
 # Environment setup
-Environment=PATH=/home/pi/evilassistant/.venv/bin
-Environment=PYTHONPATH=/home/pi/evilassistant
+Environment=PATH=/home/jkinman/evilassistant/.venv/bin
+Environment=PYTHONPATH=/home/jkinman/evilassistant
 Environment=PHILIPS_HUE_BRIDGE_IP=192.168.0.20
+Environment=PULSE_RUNTIME_PATH=/run/user/1000/pulse
+Environment=XDG_RUNTIME_DIR=/run/user/1000
 
 # Main command
-ExecStart=/home/pi/evilassistant/.venv/bin/python -m evilassistant
+ExecStart=/home/jkinman/evilassistant/.venv/bin/python -m evilassistant --transcription
 
 # Process management
 Restart=always
