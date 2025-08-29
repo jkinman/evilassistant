@@ -141,20 +141,28 @@ class SimpleVADRecorder:
         
     def listen_for_wake_phrase(self, wake_phrases, model) -> Optional[str]:
         """Listen for wake phrases using simple VAD."""
+        logger.info("🎧 Starting wake phrase detection...")
+        logger.info(f"🔍 Listening for wake phrases: {', '.join(wake_phrases)}")
+        
         while True:
             # Record a speech chunk
+            logger.debug("🎤 Recording audio chunk...")
             audio_chunk = self.record_speech_chunk()
-            
+
             if audio_chunk is None:
+                logger.debug("🔇 No speech detected, continuing to listen...")
                 continue  # No speech detected, keep listening
-            
+
+            logger.info(f"🎵 Audio chunk detected: {len(audio_chunk)} samples, duration: {len(audio_chunk)/self.rate:.2f}s")
+
             # Process audio for continuous transcription (if enabled)
             try:
                 from .continuous_transcription import process_audio_for_transcription
                 process_audio_for_transcription(audio_chunk)
+                logger.debug("📝 Audio sent to transcription system")
             except ImportError:
-                pass  # Transcription not available
-                
+                logger.debug("📝 Transcription system not available")
+
             # Save chunk for transcription
             import wave
             import tempfile
@@ -171,22 +179,27 @@ class SimpleVADRecorder:
                 
                 # Transcribe
                 try:
-                    print(f"Transcribing audio...")
+                    logger.info("🔤 Starting Whisper transcription...")
+                    print(f"🔤 Transcribing audio chunk...")
                     segments, _ = model.transcribe(tmp_file.name, beam_size=1, 
                                                  language="en", vad_filter=False)
                     transcription = " ".join([segment.text for segment in segments]).strip().lower()
                     
                     if transcription:
-                        print(f"Heard: '{transcription}'")
+                        logger.info(f"📢 TRANSCRIPTION RESULT: '{transcription}'")
+                        print(f"🎯 HEARD: '{transcription}'")
                         
                         # Check for wake phrases
+                        logger.debug(f"🔍 Checking for wake phrases in: '{transcription}'")
                         for phrase in wake_phrases:
                             if phrase.lower() in transcription:
-                                print(f"🔥 Wake phrase detected: '{phrase}'")
+                                logger.warning(f"⚡ WAKE PHRASE MATCH: '{phrase}' found in '{transcription}'")
+                                print(f"🔥 WAKE PHRASE DETECTED: '{phrase}'")
                                 
                                 # Check if there's a question in the same audio
                                 question_part = self.extract_question_from_wake_audio(transcription, phrase)
                                 if question_part:
+                                    logger.info(f"💡 QUESTION EXTRACTED: '{question_part}'")
                                     print(f"💡 Question extracted from wake audio: '{question_part}'")
                                     # Store the question for the assistant to use
                                     self.extracted_question = question_part

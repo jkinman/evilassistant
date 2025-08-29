@@ -57,16 +57,28 @@ class TTSEngine:
     
     def synthesize(self, text: str, output_file: str) -> bool:
         """Synthesize text using available providers with fallback"""
+        logger.info(f"🎭 TTS SYNTHESIS REQUEST: '{text[:50]}...' -> {output_file}")
+        print(f"🎭 Synthesizing: '{text[:50]}...'")
+        
         for priority, provider in self.providers:
+            provider_name = provider.__class__.__name__
             if provider.is_available():
-                logger.info(f"Trying {provider.__class__.__name__}")
+                logger.info(f"🔄 TRYING PROVIDER: {provider_name} (Priority {priority})")
+                print(f"🔄 Trying TTS provider: {provider_name}")
+                
                 if provider.synthesize(text, output_file):
                     self.current_provider = provider
+                    logger.info(f"✅ TTS SUCCESS: {provider_name} completed synthesis")
+                    print(f"✅ TTS completed by: {provider_name}")
                     return True
                 else:
-                    logger.warning(f"{provider.__class__.__name__} failed, trying next...")
+                    logger.warning(f"❌ TTS FAILED: {provider_name} failed, trying next...")
+                    print(f"❌ TTS failed: {provider_name}, trying next...")
+            else:
+                logger.debug(f"⏭️  SKIPPING: {provider_name} not available")
         
-        logger.error("All TTS providers failed")
+        logger.error("💥 ALL TTS PROVIDERS FAILED")
+        print("💥 All TTS providers failed!")
         return False
     
     def get_current_provider(self) -> Optional[str]:

@@ -539,27 +539,48 @@ async def run_clean_assistant(enable_transcription=False):
     print(f"Listening for wake-up phrases: {', '.join(WAKE_PHRASES)}...")
     
     try:
+        logger.info("🚀 STARTING MAIN ASSISTANT LOOP")
+        print("🚀 Evil Assistant ready - listening for commands...")
+        
         while True:
             # Listen for wake phrase
+            logger.info("👂 LISTENING FOR WAKE PHRASES")
             wake_phrase = vad.listen_for_wake_phrase(WAKE_PHRASES, model)
             
             if wake_phrase:
+                logger.warning(f"⚡ WAKE PHRASE TRIGGERED: '{wake_phrase}'")
                 print("🔥 Wake detected!")
                 
                 # Check if question was extracted from wake audio
                 question = None
                 if hasattr(vad, 'extracted_question') and vad.extracted_question:
                     question = vad.extracted_question
+                    logger.info(f"💡 USING EXTRACTED QUESTION: '{question}'")
                     print(f"💡 Using extracted question: {question}")
                 else:
                     # Record and process question normally
+                    logger.info("🎤 RECORDING QUESTION AUDIO")
+                    print("🎤 Recording your question...")
                     question_audio = vad.record_question()
                     if question_audio is not None:
+                        logger.info("🔤 TRANSCRIBING QUESTION")
+                        print("🔤 Transcribing question...")
                         question = audio_handler.transcribe_audio(question_audio, model, "question")
+                        logger.info(f"📝 QUESTION TRANSCRIBED: '{question}'")
                 
                 if question and len(question.strip()) > 2:
+                    logger.info(f"❓ PROCESSING QUESTION: '{question}'")
+                    print(f"❓ Processing: '{question}'")
+                    
                     response = await conversation_handler.process_question(question)
-                    conversation_handler.handle_response(response)
+                    
+                    if response:
+                        logger.info(f"💬 RESPONSE GENERATED: '{response[:100]}...'")
+                        print(f"💬 Response ready: '{response[:50]}...'")
+                        conversation_handler.handle_response(response)
+                    else:
+                        logger.warning("❌ NO RESPONSE GENERATED")
+                        print("❌ No response generated")
                     
                     # Clear extracted question after use
                     if hasattr(vad, 'extracted_question'):

@@ -23,11 +23,19 @@ def main():
     
     args = parser.parse_args()
     
-    # Setup logging
+    # Setup enhanced debug logging
     logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        level=logging.DEBUG,  # Enable DEBUG level for detailed logging
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(),  # Console output
+        ]
     )
+    
+    # Set specific loggers to appropriate levels
+    logging.getLogger('faster_whisper').setLevel(logging.WARNING)  # Reduce Whisper noise
+    logging.getLogger('urllib3').setLevel(logging.WARNING)  # Reduce HTTP noise
+    logging.getLogger('requests').setLevel(logging.WARNING)  # Reduce requests noise
     
     logger = logging.getLogger(__name__)
     logger.info("🔥 Starting Evil Assistant")

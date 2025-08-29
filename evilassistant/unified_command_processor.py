@@ -110,28 +110,45 @@ class UnifiedCommandProcessor:
         """
         text_lower = text.lower().strip()
         
-        logger.info(f"Processing unified command: '{text}'")
+        logger.info(f"🎯 UNIFIED COMMAND PROCESSING: '{text}'")
+        print(f"🎯 Analyzing command: '{text}'")
         
         # Try each command type in priority order
         for command_config in self.command_patterns:
+            command_type = command_config["type"]
+            
             if not command_config.get("enabled", True):
+                logger.debug(f"⏭️  SKIPPING: {command_type.value} (disabled)")
                 continue
                 
-            command_type = command_config["type"]
             patterns = command_config["patterns"]
             handler = command_config["handler"]
             
+            logger.debug(f"🔍 CHECKING: {command_type.value} command type")
+            
             # Check if this command matches this type
             if self._matches_command_type(text_lower, command_type, patterns):
-                logger.info(f"Command classified as: {command_type.value}")
+                logger.warning(f"✅ COMMAND CLASSIFIED: {command_type.value}")
+                print(f"✅ Command type: {command_type.value}")
                 
                 try:
+                    logger.info(f"🔄 EXECUTING: {command_type.value} handler")
+                    print(f"🔄 Executing {command_type.value} handler...")
+                    
                     response = await handler(text)
                     if response:
+                        logger.info(f"💬 HANDLER SUCCESS: {command_type.value} returned response")
+                        print(f"💬 {command_type.value} handler completed")
                         return command_type, response
+                    else:
+                        logger.warning(f"❌ HANDLER EMPTY: {command_type.value} returned no response")
+                        
                 except Exception as e:
-                    logger.error(f"Handler failed for {command_type.value}: {e}")
+                    logger.error(f"💥 HANDLER ERROR: {command_type.value} failed: {e}")
+                    print(f"💥 {command_type.value} handler failed: {e}")
                     continue
+            else:
+                logger.debug(f"❌ NO MATCH: {command_type.value} patterns don't match")
         
         # Should never reach here due to AI fallback, but just in case
         return CommandType.AI_QUERY, "I did not understand that command, mortal."
