@@ -156,7 +156,7 @@ class SimpleVADRecorder:
                 logger.debug("🔇 No speech detected, continuing to listen...")
                 continue  # No speech detected, keep listening
 
-            logger.info(f"🎵 Audio chunk detected: {len(audio_chunk)} samples, duration: {len(audio_chunk)/self.rate:.2f}s")
+            logger.info(f"🎵 Audio chunk detected: {len(audio_chunk)} samples, duration: {len(audio_chunk)/self.sample_rate:.2f}s")
 
             # Process audio for continuous transcription (if enabled)
             try:
