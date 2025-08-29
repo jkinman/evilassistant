@@ -39,6 +39,12 @@ class TTSEngine:
         self.add_provider_instance(EspeakProvider(config), priority=2)
         return self
     
+    def configure_edge_demonic(self, config: TTSConfig) -> 'TTSEngine':
+        """Configure Edge TTS + demonic effects provider"""
+        from .providers.edge_demonic import EdgeDemonicProvider
+        self.add_provider_instance(EdgeDemonicProvider(config), priority=0)
+        return self
+    
     def configure_elevenlabs(self, config: ElevenLabsConfig) -> 'TTSEngine':
         """Configure ElevenLabs provider"""  
         self.add_provider_instance(ElevenLabsProvider(config), priority=0)

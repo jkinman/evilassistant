@@ -11,18 +11,23 @@ def create_configured_engine(profile_name: str = "piper_ryan_demonic") -> TTSEng
     """Create a pre-configured TTS engine with quality prioritization"""
     engine = TTSEngine()
     
-    # Priority 0: gTTS Demonic (fast, free, proven demonic voice - PRIMARY)
+    # Priority 0: Edge Demonic (HIGH QUALITY, natural, free - PRIMARY)
+    # Microsoft Edge TTS + demonic effects - 5/5 naturalness, 5/5 clarity
+    edge_config = TTSConfig(effects=["balanced_demon"])
+    engine.configure_edge_demonic(edge_config)
+    
+    # Priority 1: gTTS Demonic (fast, free, proven fallback)
     # Use balanced_demon profile - best balance of speed (4/5) and depth (3/5)
     gtts_config = TTSConfig(effects=["balanced_demon"])
     engine.add_provider("gtts_demonic", gtts_config)
     
-    # Priority 1: Piper (high quality neural voices, free)
+    # Priority 2: Piper (high quality neural voices, free)
     if profile_name in VOICE_PROFILES:
         config = VOICE_PROFILES[profile_name]
         if isinstance(config, PiperConfig):
             engine.configure_piper(config)
     
-    # Priority 2: espeak (fallback, always available)
+    # Priority 3: espeak (fallback, always available)
     from .config import EspeakConfig
     espeak_config = EspeakConfig(
         voice_id="en",
@@ -32,7 +37,7 @@ def create_configured_engine(profile_name: str = "piper_ryan_demonic") -> TTSEng
     )
     engine.configure_espeak(espeak_config)
     
-    # Priority 3: ElevenLabs (premium quality, but expensive - manual override only)
+    # Priority 4: ElevenLabs (premium quality, but expensive - manual override only)
     # Only use if explicitly requested or other providers fail
     if "ELEVENLABS_API_KEY" in os.environ and os.environ.get("USE_ELEVENLABS_PREMIUM", "false").lower() == "true":
         engine.configure_elevenlabs(VOICE_PROFILES["elevenlabs_premium"])
