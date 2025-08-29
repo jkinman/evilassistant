@@ -186,3 +186,8 @@ test_*.mp3
 *test*.mp3
 /archive
 /evilassistant/models
+
+# Transcription files and encryption keys (privacy)
+transcripts/
+.transcript_key
+*.enc

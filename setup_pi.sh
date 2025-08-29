@@ -82,10 +82,21 @@ echo "📦 Installing Evil Assistant package..."
 pip install -e .
 print_status "Evil Assistant package installed"
 
+# Install additional transcription dependencies
+echo "🎧 Installing transcription system dependencies..."
+pip install cryptography pyannote-audio
+print_status "Transcription dependencies installed"
+
 # Create models directory
 echo "📁 Setting up models directory..."
 mkdir -p evilassistant/models
 print_status "Models directory created"
+
+# Create transcripts directory
+echo "🎧 Setting up transcription directories..."
+mkdir -p transcripts
+chmod 700 transcripts  # Secure transcripts directory
+print_status "Transcription directories created"
 
 # Download Piper models
 echo "🗣️  Downloading Piper TTS models..."
@@ -229,6 +240,12 @@ echo "🎭 Wake phrases to try:"
 echo "   'Dark one' → 'Turn the lights red'"
 echo "   'Evil assistant' → 'What time is it?'"
 echo "   'Cthulhu' → 'Set brightness to 50 percent'"
+echo ""
+echo "🎧 Transcription commands:"
+echo "   'Evil assistant' → 'Start recording'"
+echo "   'Dark one' → 'What did someone say about lights?'"
+echo "   'Cthulhu' → 'Who spoke today?'"
+echo "   'Evil assistant' → 'Recent activity'"
 echo ""
 print_status "Evil Assistant is ready to haunt your Raspberry Pi! 🔥🍓👹"
 

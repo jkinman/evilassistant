@@ -5,11 +5,14 @@ A demonic voice assistant with enhanced TTS, smart home integration, and Raspber
 ## ✨ **Features**
 
 - 🎭 **Enhanced Demonic Voice** - Neural TTS with pitch-shifting and audio effects
-- 🏠 **Smart Home Control** - Philips Hue light control with voice commands
+- 🏠 **Smart Home Control** - Philips Hue & Home Assistant integration with voice commands
 - 🍓 **Raspberry Pi Optimized** - Auto-detects Pi hardware with GPIO LED control
 - 🎤 **Advanced VAD** - Voice activity detection with speech-based chunking
 - 🔄 **Modular TTS** - ElevenLabs, Piper, and espeak with automatic fallback
 - 🧠 **AI Powered** - xAI Grok integration for intelligent responses
+- 🎧 **Continuous Transcription** - Privacy-first conversation logging & speaker recognition
+- 👥 **Speaker Identification** - Anonymous multi-speaker tracking and analysis
+- 🔐 **Privacy Protected** - Local AES-256 encrypted storage with auto-deletion
 - 🛡️ **Robust Architecture** - Clean, modular codebase with proper error handling
 
 ## 🚀 **Quick Start**
@@ -45,6 +48,8 @@ ELEVENLABS_VOICE_ID=your_voice_id_here
 
 # Smart Home (Optional)
 PHILIPS_HUE_BRIDGE_IP=192.168.1.xxx
+HOME_ASSISTANT_URL=http://localhost:8123
+HOME_ASSISTANT_TOKEN=your_long_lived_access_token
 
 # Voice Configuration
 TTS_VOICE_PROFILE=piper_ryan_demonic
@@ -144,6 +149,24 @@ sudo systemctl status evil-assistant.service
 
 # View logs
 sudo journalctl -u evil-assistant.service -f
+```
+
+### **Transcription System**
+```bash
+# Test transcription system
+python test_transcription.py
+
+# Start Evil Assistant WITH transcription (privacy warning!)
+python -m evilassistant --transcription
+
+# Start Evil Assistant WITHOUT transcription (default, privacy-safe)
+python -m evilassistant
+
+# Once running with --transcription:
+# Say: "Evil assistant, start recording"
+# Say: "Dark one, what did someone say about lights?"
+# Say: "Cthulhu, who spoke today?"
+# Say: "Evil assistant, recent activity"
 ```
 
 ## 🏗️ **Architecture**

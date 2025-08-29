@@ -440,11 +440,23 @@ class ConversationHandler:
         self.model = model
     
     async def process_question(self, question):
-        """Process a question through smart home then AI if needed."""
+        """Process a question through smart home, transcription, then AI if needed."""
         print(f"Question: {question}")
         print("Processing question...")
         
-        # Try smart home first
+        # Try transcription commands first
+        try:
+            from .evil_transcription_commands import process_evil_transcription_command
+            transcription_response = await process_evil_transcription_command(question)
+            if transcription_response:
+                print("🎧 Transcription command executed!")
+                return transcription_response
+        except ImportError:
+            print("⚠️  Transcription commands not available")
+        except Exception as e:
+            print(f"Transcription command failed: {e}")
+        
+        # Try smart home next
         smart_response = await self.smart_home.process_command(question)
         if smart_response:
             print("🏠 Smart home command executed!")
@@ -470,7 +482,7 @@ class ConversationHandler:
             if os.path.exists("response.wav"):
                 os.remove("response.wav")
 
-async def run_clean_assistant():
+async def run_clean_assistant(enable_transcription=False):
     """Run the clean, refactored Evil Assistant."""
     print("🔥 Starting Clean Evil Assistant")
     
@@ -487,6 +499,21 @@ async def run_clean_assistant():
     audio_handler = AudioHandler()
     ai_handler = AIHandler()
     conversation_handler = ConversationHandler(smart_home_handler, audio_handler, ai_handler, vad, model)
+    
+    # Initialize transcription system (only if enabled)
+    transcriber = None
+    if enable_transcription:
+        try:
+            from .continuous_transcription import get_transcriber, start_continuous_transcription
+            transcriber = get_transcriber()
+            print("🎧 Continuous transcription system initialized")
+            print("🔥 Say 'Evil assistant, start recording' to begin surveillance!")
+        except ImportError as e:
+            print(f"⚠️  Transcription system not available: {e}")
+            transcriber = None
+    else:
+        print("🔇 Transcription disabled (use --transcription flag to enable)")
+        print("ℹ️  Privacy mode: No conversation recording")
     
     print(f"Listening for wake-up phrases: {', '.join(WAKE_PHRASES)}...")
     

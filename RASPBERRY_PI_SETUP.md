@@ -230,8 +230,23 @@ print('✅ Audio test complete')
 # Set Hue bridge IP
 export PHILIPS_HUE_BRIDGE_IP=192.168.1.xxx
 
+# Test transcription system
+python test_transcription.py
+
 # Start the assistant
 python -m evilassistant
+```
+
+### **4. Transcription Features Test**
+
+Once the assistant is running:
+
+```bash
+# Say these commands:
+"Evil assistant, start recording"      # Begin transcription
+"Dark one, who spoke today?"          # Check speakers
+"Cthulhu, recent activity"           # Recent conversations  
+"Evil assistant, stats"              # Transcription stats
 ```
 
 ## 🔧 **Pi-Specific Configuration**

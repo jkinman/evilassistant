@@ -147,6 +147,13 @@ class SimpleVADRecorder:
             
             if audio_chunk is None:
                 continue  # No speech detected, keep listening
+            
+            # Process audio for continuous transcription (if enabled)
+            try:
+                from .continuous_transcription import process_audio_for_transcription
+                process_audio_for_transcription(audio_chunk)
+            except ImportError:
+                pass  # Transcription not available
                 
             # Save chunk for transcription
             import wave
