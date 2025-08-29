@@ -58,7 +58,7 @@ git push
 cd ~/evilassistant
 git pull
 source .venv/bin/activate
-python -m evilassistant --vad --clean
+python -m evilassistant
 ```
 
 ## 🧪 **Testing the Improvements**

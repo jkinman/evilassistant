@@ -87,6 +87,6 @@ Your Evil Assistant is **fully prepared** for Raspberry Pi 4 deployment. All cri
 2. 📥 Clone the repo: `git clone [your-repo]`
 3. 🚀 Run setup: `./setup_pi.sh`
 4. ⚙️ Configure: `nano .env`
-5. 🎭 Test: `python -m evilassistant --vad --clean`
+5. 🎭 Test: `python -m evilassistant`
 
 **The demonic assistant awaits your Raspberry Pi!** 👹🍓🔥

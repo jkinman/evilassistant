@@ -139,7 +139,7 @@ sudo journalctl -u evil-assistant -n 50
 # Test manually first
 cd ~/evilassistant
 source .venv/bin/activate
-python -m evilassistant --vad --clean
+python -m evilassistant
 ```
 
 ### **Audio Issues After Boot**

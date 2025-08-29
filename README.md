@@ -19,7 +19,7 @@ A demonic voice assistant with enhanced TTS, smart home integration, and Raspber
 git clone https://github.com/YOUR_USERNAME/evilassistant.git
 cd evilassistant
 pip install -e .
-python -m evilassistant --vad --clean
+python -m evilassistant
 ```
 
 ### **On Raspberry Pi** 🍓
@@ -115,10 +115,10 @@ The assistant automatically detects Raspberry Pi hardware and enables GPIO featu
 ### **Different Assistant Modes**
 ```bash
 # Clean modular version (recommended)
-python -m evilassistant --vad --clean
+python -m evilassistant
 
 # VAD-based speech detection
-python -m evilassistant --vad
+python -m evilassistant
 
 # Default mode
 python -m evilassistant

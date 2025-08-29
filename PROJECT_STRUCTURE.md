@@ -3,9 +3,7 @@
 ## 🏗️ **Current Architecture (Post-Cleanup)**
 
 ### **Main Entry Points**
-- `python -m evilassistant` - Default: runs clean assistant
-- `python -m evilassistant --vad --clean` - Recommended: clean refactored version  
-- `python -m evilassistant --vad` - VAD-based speech chunking version
+- `python -m evilassistant` - Single entry point with modern architecture
 
 ### **Core Components**
 
@@ -103,7 +101,7 @@ PHILIPS_HUE_BRIDGE_IP=192.168.x.x
 ### **Usage Examples**
 ```bash
 # Start with enhanced demonic voice
-python -m evilassistant --vad --clean
+python -m evilassistant
 
 # Test voice quality
 python -c "from evilassistant.tts import create_configured_engine; engine = create_configured_engine('piper_ryan_demonic'); engine.synthesize('Test voice', 'test.wav')"

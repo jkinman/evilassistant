@@ -231,7 +231,7 @@ print('✅ Audio test complete')
 export PHILIPS_HUE_BRIDGE_IP=192.168.1.xxx
 
 # Start the assistant
-python -m evilassistant --vad --clean
+python -m evilassistant
 ```
 
 ## 🔧 **Pi-Specific Configuration**
@@ -255,7 +255,7 @@ User=pi
 WorkingDirectory=/home/pi/evilassistant
 Environment=PATH=/home/pi/evilassistant/.venv/bin
 Environment=PHILIPS_HUE_BRIDGE_IP=192.168.1.xxx
-ExecStart=/home/pi/evilassistant/.venv/bin/python -m evilassistant --vad --clean
+ExecStart=/home/pi/evilassistant/.venv/bin/python -m evilassistant
 Restart=always
 RestartSec=10
 
@@ -363,5 +363,5 @@ PWM_FREQUENCY_HZ=2000
 6. Fine-tune for your environment
 
 ---
-
+gittoken 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
 **Ready to unleash the Evil Assistant on your Raspberry Pi!** 🔥🍓👹

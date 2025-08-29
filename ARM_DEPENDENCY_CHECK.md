@@ -269,7 +269,7 @@ print(f'TTS Test: {\"✅ PASS\" if success else \"❌ FAIL\"}')
 ### **4. Full System Test**
 ```bash
 # Quick assistant test (30 seconds)
-timeout 30s python -m evilassistant --vad --clean || echo "Test completed"
+timeout 30s python -m evilassistant || echo "Test completed"
 ```
 
 ## 📋 **Known Working Configurations**

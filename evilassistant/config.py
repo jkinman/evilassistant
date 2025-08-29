@@ -9,9 +9,6 @@ WAKE_PHRASES = ["evil assistant", "evil assistance", "dark one", "dark 1", "cthu
 STOP_PHRASES = ["shut up", "be silent", "stop", "unsummon"]
 
 FOLLOW_UP_PROMPT = "What else do you seek, mortal? I await your next command!"
-PIPER_MODEL = "en_US-lessac-low.onnx"
-PIPER_CONFIG = "en_US-lessac-low.onnx.json"
-SOX_EFFECTS = "norm -3 bass +6 treble -3 pitch -700 tempo 0.88 overdrive 12:12 reverb 20 50 100 100 0 -t"
 
 # Prompt settings
 SYSTEM_PROMPT = (
@@ -27,12 +24,6 @@ GREETING_INSTRUCTION = (
 
 # Wake confirmation: number of consecutive windows containing a wake phrase
 WAKE_CONFIRM_WINDOWS = 1
-
-# Wake engine selection
-USE_PORCUPINE = False  # Disabled for now - custom phrases not supported
-# If using built-in keywords, set PORCUPINE_KEYWORDS (e.g., ["jarvis"]). For custom, set PORCUPINE_KEYWORD_PATHS to .ppn files.
-PORCUPINE_KEYWORDS = WAKE_PHRASES  # Use supported keyword if enabled
-PORCUPINE_KEYWORD_PATHS = []
 
 # GPIO LED envelope follower settings
 GPIO_ENABLED = True

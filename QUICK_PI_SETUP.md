@@ -55,7 +55,7 @@ PHILIPS_HUE_BRIDGE_IP=192.168.1.xxx
 # Activate environment and test
 source .venv/bin/activate
 export PHILIPS_HUE_BRIDGE_IP=192.168.1.xxx
-python -m evilassistant --vad --clean
+python -m evilassistant
 ```
 
 ### **Step 5: Enable Auto-Start** (Optional)
