@@ -109,15 +109,15 @@ class EvilTranscriptionHandler:
         text_lower = text.lower()
         transcriber = get_transcriber()
         
-        # Start/Stop commands
-        if any(phrase in text_lower for phrase in ['start recording', 'start listening', 'begin surveillance']):
+        # Start/Stop commands - Flexible semantic parsing like smart home
+        if self._is_start_command(text_lower):
             success = start_continuous_transcription()
             if success:
                 return self.get_evil_response("transcription_started")
             else:
                 return "My surveillance is already active, mortal!"
         
-        if any(phrase in text_lower for phrase in ['stop recording', 'stop listening', 'end surveillance', 'cease monitoring']):
+        if self._is_stop_command(text_lower):
             success = stop_continuous_transcription()
             if success:
                 return self.get_evil_response("transcription_stopped")
@@ -207,10 +207,63 @@ class EvilTranscriptionHandler:
         
         # Privacy/deletion commands
         if any(phrase in text_lower for phrase in ['delete', 'clear', 'erase', 'purge', 'remove']):
-            # For MVP, we'll just acknowledge - actual deletion would need more specific implementation
-            return self.get_evil_response("privacy_deletion")
+            return await self._handle_privacy_command(text_lower)
         
         return None
+    
+    async def _handle_privacy_command(self, text: str) -> str:
+        """Handle privacy and deletion commands"""
+        try:
+            from .privacy_manager import get_privacy_manager
+            privacy_manager = get_privacy_manager()
+            
+            # Specific deletion commands
+            if "all" in text or "everything" in text:
+                return privacy_manager.delete_all_transcripts()
+            elif "today" in text:
+                from datetime import datetime
+                today = datetime.now().strftime("%Y-%m-%d")
+                return privacy_manager.delete_transcripts_by_date(today)
+            elif "yesterday" in text:
+                from datetime import datetime, timedelta
+                yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+                return privacy_manager.delete_transcripts_by_date(yesterday)
+            elif "old" in text or "older" in text:
+                # Delete transcripts older than 7 days
+                return privacy_manager.delete_transcripts_older_than(7)
+            elif "key" in text or "encryption" in text:
+                return privacy_manager.delete_encryption_key()
+            else:
+                # Default: show privacy status
+                return privacy_manager.get_privacy_status()
+                
+        except ImportError:
+            return "Privacy controls are not available, mortal!"
+        except Exception as e:
+            logger.error(f"Privacy command failed: {e}")
+            return "The dark forces resist your privacy command!"
+    
+    def _is_start_command(self, text: str) -> bool:
+        """Flexible detection for start recording commands"""
+        start_indicators = ['start', 'begin', 'enable', 'activate', 'turn on']
+        recording_indicators = ['recording', 'transcription', 'surveillance', 'monitoring', 'listening']
+        
+        # Check if text contains both a start indicator and recording indicator
+        has_start = any(indicator in text for indicator in start_indicators)
+        has_recording = any(indicator in text for indicator in recording_indicators)
+        
+        return has_start and has_recording
+    
+    def _is_stop_command(self, text: str) -> bool:
+        """Flexible detection for stop recording commands"""
+        stop_indicators = ['stop', 'end', 'disable', 'deactivate', 'turn off', 'cease']
+        recording_indicators = ['recording', 'transcription', 'surveillance', 'monitoring', 'listening']
+        
+        # Check if text contains both a stop indicator and recording indicator
+        has_stop = any(indicator in text for indicator in stop_indicators)
+        has_recording = any(indicator in text for indicator in recording_indicators)
+        
+        return has_stop and has_recording
     
     def _extract_search_query(self, text: str) -> Optional[str]:
         """Extract search query from natural language"""

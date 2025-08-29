@@ -212,33 +212,54 @@ class SimpleSpeakerIdentifier:
         return hashlib.md5(feature_string.encode()).hexdigest()[:8]
     
     def identify_speaker(self, audio_data: np.ndarray, confidence: float) -> str:
-        """Identify speaker from audio data (simple clustering approach)"""
+        """Identify speaker from audio data (improved clustering)"""
         features = self._calculate_audio_features(audio_data)
-        feature_hash = self._features_to_hash(features)
         
-        # Simple matching: if we've seen similar features, same speaker
+        # More robust speaker matching with multiple features
+        best_match = None
+        best_similarity = float('inf')
+        
         for speaker_id, profile in self.speakers.items():
-            # This is a very basic approach - in production, we'd use proper ML
-            if abs(features["mean_amplitude"] - profile.avg_confidence) < 0.1:
-                # Update profile
-                profile.last_heard = time.time()
-                profile.total_segments += 1
-                return speaker_id
+            # Compare multiple audio characteristics
+            if hasattr(profile, 'audio_features'):
+                similarity = 0
+                similarity += abs(features["mean_amplitude"] - profile.audio_features.get("mean_amplitude", 0))
+                similarity += abs(features["zero_crossing_rate"] - profile.audio_features.get("zero_crossing_rate", 0)) * 0.5
+                similarity += abs(features["spectral_centroid"] - profile.audio_features.get("spectral_centroid", 0)) * 0.0001
+                
+                # More lenient threshold for speaker matching
+                if similarity < best_similarity and similarity < 0.15:  # Increased threshold
+                    best_similarity = similarity
+                    best_match = speaker_id
         
-        # New speaker
-        speaker_id = f"Speaker{self.next_speaker_id}"
-        self.next_speaker_id += 1
+        if best_match:
+            # Update existing speaker
+            profile = self.speakers[best_match]
+            profile.last_heard = time.time()
+            profile.total_segments += 1
+            return best_match
         
-        self.speakers[speaker_id] = SpeakerProfile(
-            speaker_id=speaker_id,
-            first_heard=time.time(),
-            last_heard=time.time(),
-            total_segments=1,
-            avg_confidence=confidence
-        )
-        
-        logger.info(f"New speaker identified: {speaker_id}")
-        return speaker_id
+        # New speaker only if we have very few speakers already (max 3-4 realistic)
+        if len(self.speakers) < 4:
+            speaker_id = f"Speaker{self.next_speaker_id}"
+            self.next_speaker_id += 1
+            
+            profile = SpeakerProfile(
+                speaker_id=speaker_id,
+                first_heard=time.time(),
+                last_heard=time.time(),
+                total_segments=1,
+                avg_confidence=confidence
+            )
+            profile.audio_features = features  # Store features for comparison
+            self.speakers[speaker_id] = profile
+            
+            logger.info(f"New speaker identified: {speaker_id}")
+            return speaker_id
+        else:
+            # Too many speakers, assign to most recent
+            most_recent = max(self.speakers.items(), key=lambda x: x[1].last_heard)
+            return most_recent[0]
 
 class ContinuousTranscriber:
     """Main continuous transcription system"""
@@ -246,7 +267,7 @@ class ContinuousTranscriber:
     def __init__(self, 
                  model_name: str = "base",
                  chunk_duration: float = 10.0,
-                 min_confidence: float = 0.3,
+                 min_confidence: float = -0.8,
                  enable_speaker_id: bool = True):
         
         self.model_name = model_name
@@ -276,18 +297,13 @@ class ContinuousTranscriber:
     def transcribe_chunk(self, audio_data: np.ndarray, sample_rate: int = 16000) -> Optional[TranscriptEntry]:
         """Transcribe a single audio chunk"""
         try:
-            # Save audio to temporary file
-            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_file:
-                with wave.open(tmp_file.name, 'wb') as wf:
-                    wf.setnchannels(1)
-                    wf.setsampwidth(2)
-                    wf.setframerate(sample_rate)
-                    audio_int16 = (audio_data * 32767).astype(np.int16)
-                    wf.writeframes(audio_int16.tobytes())
-                
+            # Use proper resource management for temporary files
+            from .audio_utils import temporary_wav_file
+            
+            with temporary_wav_file(audio_data, sample_rate) as wav_path:
                 # Transcribe
                 segments, info = self.whisper_model.transcribe(
-                    tmp_file.name,
+                    wav_path,
                     beam_size=1,
                     language="en",
                     vad_filter=True
@@ -304,18 +320,30 @@ class ContinuousTranscriber:
                         total_confidence += segment.avg_logprob
                         segment_count += 1
                 
-                # Clean up temp file
-                os.unlink(tmp_file.name)
-                
                 if not text_parts:
                     return None
                 
                 full_text = " ".join(text_parts)
                 avg_confidence = total_confidence / segment_count if segment_count > 0 else 0
                 
+                # Filter out very short or meaningless phrases
+                if len(full_text) < 10:  # Too short
+                    return None
+                
+                # Filter out common background noise phrases
+                noise_phrases = [
+                    "thank you", "okay", "yeah", "uh huh", "mm hmm", "alright",
+                    "the", "and", "in", "to", "of", "a", "it", "is", "that"
+                ]
+                if full_text.lower().strip() in noise_phrases:
+                    return None
+                
                 # Skip if confidence too low
                 if avg_confidence < self.min_confidence:
+                    logger.info(f"Skipping low confidence: {avg_confidence:.3f} < {self.min_confidence}")
                     return None
+                
+                logger.info(f"Storing transcript: '{full_text}' (confidence: {avg_confidence:.3f})")
                 
                 # Identify speaker if enabled
                 speaker_id = None

@@ -58,10 +58,14 @@ class PiperProvider(TTSProvider):
                 speaker_id=self.piper_config.speaker_id
             )
             
-            # Generate audio to temporary WAV file
-            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_raw:
-                with wave.open(tmp_raw.name, 'wb') as wav_file:
-                    voice.synthesize_wav(text, wav_file, syn_config)
+            # Generate audio to temporary WAV file with proper cleanup
+            try:
+                from ...audio_utils import get_audio_manager
+                audio_manager = get_audio_manager()
+                
+                with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_raw:
+                    with wave.open(tmp_raw.name, 'wb') as wav_file:
+                        voice.synthesize_wav(text, wav_file, syn_config)
                 
                 # Apply effects if specified
                 if self.config.effects:
@@ -70,7 +74,8 @@ class PiperProvider(TTSProvider):
                     subprocess.run(['cp', tmp_raw.name, output_file], check=True)
                     success = True
                 
-                # Cleanup
+            finally:
+                # Guaranteed cleanup
                 if os.path.exists(tmp_raw.name):
                     os.unlink(tmp_raw.name)
                 

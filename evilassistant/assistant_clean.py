@@ -440,30 +440,51 @@ class ConversationHandler:
         self.model = model
     
     async def process_question(self, question):
-        """Process a question through smart home, transcription, then AI if needed."""
+        """Process a question through unified command processor."""
         print(f"Question: {question}")
         print("Processing question...")
         
-        # Try transcription commands first
+        # Use unified command processor for all commands
         try:
-            from .evil_transcription_commands import process_evil_transcription_command
-            transcription_response = await process_evil_transcription_command(question)
-            if transcription_response:
-                print("🎧 Transcription command executed!")
-                return transcription_response
-        except ImportError:
-            print("⚠️  Transcription commands not available")
+            from .unified_command_processor import UnifiedCommandProcessor
+            
+            # Initialize transcription handler if available
+            transcription_handler = None
+            try:
+                from .evil_transcription_commands import get_evil_transcription_handler
+                transcription_handler = get_evil_transcription_handler()
+            except ImportError:
+                pass
+            
+            # Create unified processor
+            processor = UnifiedCommandProcessor(
+                smart_home_handler=self.smart_home,
+                ai_handler=self.ai,
+                transcription_handler=transcription_handler
+            )
+            
+            # Process command through unified pipeline
+            command_type, response = await processor.process_command(question)
+            
+            # Log what type of command was processed
+            type_icons = {
+                "transcription": "🎧",
+                "smart_home": "🏠", 
+                "ai_query": "🧠",
+                "system": "⚙️"
+            }
+            icon = type_icons.get(command_type.value, "❓")
+            print(f"{icon} {command_type.value.title()} command executed!")
+            
+            return response
+            
+        except ImportError as e:
+            print(f"⚠️  Unified processor not available: {e}")
+            # Fallback to old method if unified processor fails
+            return self.ai.get_ai_response(question)
         except Exception as e:
-            print(f"Transcription command failed: {e}")
-        
-        # Try smart home next
-        smart_response = await self.smart_home.process_command(question)
-        if smart_response:
-            print("🏠 Smart home command executed!")
-            return smart_response
-        
-        # Fall back to AI
-        return self.ai.get_ai_response(question)
+            print(f"❌ Command processing failed: {e}")
+            return "My dark powers are temporarily disrupted, mortal. Try again."
     
     def handle_response(self, response):
         """Handle response synthesis and playback with interrupt capability."""
