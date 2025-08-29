@@ -20,7 +20,7 @@ Environment=PULSE_RUNTIME_PATH=/run/user/1000/pulse
 Environment=XDG_RUNTIME_DIR=/run/user/1000
 
 # Main command
-ExecStart=/home/jkinman/evilassistant/.venv/bin/python -m evilassistant --transcription
+ExecStart=/home/jkinman/evilassistant/.venv/bin/python -m evilassistant
 
 # Process management
 Restart=always

@@ -59,11 +59,14 @@ class PiperProvider(TTSProvider):
             )
             
             # Generate audio to temporary WAV file with proper cleanup
+            success = False
+            tmp_raw_name = None
             try:
                 from ...audio_utils import get_audio_manager
                 audio_manager = get_audio_manager()
                 
                 with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_raw:
+                    tmp_raw_name = tmp_raw.name
                     with wave.open(tmp_raw.name, 'wb') as wav_file:
                         voice.synthesize_wav(text, wav_file, syn_config)
                 
@@ -76,8 +79,8 @@ class PiperProvider(TTSProvider):
                 
             finally:
                 # Guaranteed cleanup
-                if os.path.exists(tmp_raw.name):
-                    os.unlink(tmp_raw.name)
+                if tmp_raw_name and os.path.exists(tmp_raw_name):
+                    os.unlink(tmp_raw_name)
                 
                 return success
                 
