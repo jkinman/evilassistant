@@ -13,7 +13,8 @@ def create_configured_engine(profile_name: str = "piper_ryan_demonic") -> TTSEng
     
     # Priority 0: Edge Demonic (HIGH QUALITY, natural, free - PRIMARY)
     # Microsoft Edge TTS + demonic effects - 5/5 naturalness, 5/5 clarity
-    edge_config = TTSConfig(effects=["balanced_demon"])
+    # Using clarity_beast profile: 4/5 overall, 4/5 clarity, 3/5 monster (WINNER!)
+    edge_config = TTSConfig(effects=["clarity_beast"])
     engine.configure_edge_demonic(edge_config)
     
     # Priority 1: gTTS Demonic (fast, free, proven fallback)

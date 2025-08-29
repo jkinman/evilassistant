@@ -172,6 +172,23 @@ class EdgeDemonicProvider(TTSProvider):
                 'treble', '-8',       # Slightly darker
                 'reverb', '25',       # Light reverb for naturalness
                 'vol', '0.9'          # Good volume
+            ],
+            
+            "clarity_beast": [     # WINNER: 4/5 overall, 4/5 clarity, 3/5 monster
+                'pitch', '-480',      # Optimal depth for monstrosity + clarity
+                'bass', '+26',        # Enhanced bass without muddiness
+                'treble', '-8',       # Darkened tone
+                'overdrive', '6',     # Controlled growl for monster factor
+                'vol', '0.92'         # High volume compensation
+            ],
+            
+            "articulate_demon": [ # RUNNER-UP: 4/5 overall, 4/5 clarity, 3/5 monster
+                'pitch', '-450',      # Moderate depth for articulation
+                'bass', '+24',        # Good bass
+                'treble', '-4',       # Minimal treble reduction
+                'overdrive', '5',     # Light overdrive
+                'tremolo', '8',       # Unnatural tremolo for demon effect
+                'vol', '0.9'          # Good volume
             ]
         }
         
