@@ -7,7 +7,8 @@ import logging
 from typing import List, Optional, Tuple
 from .base import TTSProvider
 from .providers import EspeakProvider, ElevenLabsProvider, PiperProvider
-from .config import EspeakConfig, ElevenLabsConfig, PiperConfig
+from .providers.gtts_demonic import GTTSDemonicProvider
+from .config import EspeakConfig, ElevenLabsConfig, PiperConfig, TTSConfig
 
 logger = logging.getLogger(__name__)
 
@@ -18,24 +19,34 @@ class TTSEngine:
         self.providers: List[Tuple[int, TTSProvider]] = []
         self.current_provider: Optional[TTSProvider] = None
     
-    def add_provider(self, provider: TTSProvider, priority: int = 0):
-        """Add a TTS provider with priority (lower = higher priority)"""
+    def add_provider(self, provider_name: str, config: TTSConfig, priority: int = 0):
+        """Add a TTS provider by name with priority (lower = higher priority)"""
+        if provider_name == "gtts_demonic":
+            provider = GTTSDemonicProvider(config)
+        else:
+            raise ValueError(f"Unknown provider: {provider_name}")
+        
+        self.providers.append((priority, provider))
+        self.providers.sort(key=lambda x: x[0])  # Sort by priority
+    
+    def add_provider_instance(self, provider: TTSProvider, priority: int = 0):
+        """Add a TTS provider instance with priority (lower = higher priority)"""
         self.providers.append((priority, provider))
         self.providers.sort(key=lambda x: x[0])  # Sort by priority
     
     def configure_espeak(self, config: EspeakConfig) -> 'TTSEngine':
         """Configure espeak provider"""
-        self.add_provider(EspeakProvider(config), priority=2)
+        self.add_provider_instance(EspeakProvider(config), priority=2)
         return self
     
     def configure_elevenlabs(self, config: ElevenLabsConfig) -> 'TTSEngine':
         """Configure ElevenLabs provider"""  
-        self.add_provider(ElevenLabsProvider(config), priority=0)
+        self.add_provider_instance(ElevenLabsProvider(config), priority=0)
         return self
     
     def configure_piper(self, config: PiperConfig) -> 'TTSEngine':
         """Configure Piper TTS provider"""
-        self.add_provider(PiperProvider(config), priority=1)
+        self.add_provider_instance(PiperProvider(config), priority=1)
         return self
     
     def synthesize(self, text: str, output_file: str) -> bool:

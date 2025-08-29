@@ -9,6 +9,12 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any
 
 @dataclass
+class TTSConfig:
+    """Generic TTS configuration"""
+    effects: List[str] = field(default_factory=list)
+    extra_params: Dict[str, Any] = field(default_factory=dict)
+
+@dataclass
 class VoiceConfig:
     """Base configuration for voice synthesis"""
     voice_id: str = "en"
