@@ -1,0 +1,95 @@
+{
+  "Philips Hue": [
+    {
+      "type": "philips_hue_bridge",
+      "name": "Philips Hue Bridge",
+      "ip": "192.168.0.20",
+      "id": "001788fffe7a8450",
+      "protocol": "HTTP REST API",
+      "controllable": "\u2705 Direct API",
+      "integration": "Already supported!"
+    },
+    {
+      "type": "philips_hue_bridge",
+      "name": "Philips Hue Bridge (Local)",
+      "ip": "192.168.0.20",
+      "protocol": "HTTP REST API",
+      "controllable": "\u2705 Direct API",
+      "integration": "Already supported!"
+    }
+  ],
+  "UPnP Devices": [
+    {
+      "type": "upnp_device",
+      "name": "UPnP Device",
+      "ip": "192.168.0.1",
+      "location": "http://192.168.0.1:49152/IGDdevicedesc_brlan0.xml",
+      "protocol": "UPnP/SSDP",
+      "controllable": "\ud83d\udd04 Depends on device type",
+      "integration": "\ud83d\udd04 May be controllable"
+    },
+    {
+      "type": "upnp_device",
+      "name": "UPnP Device",
+      "ip": "192.168.0.20",
+      "location": "http://192.168.0.20:80/description.xml",
+      "protocol": "UPnP/SSDP",
+      "controllable": "\ud83d\udd04 Depends on device type",
+      "integration": "\ud83d\udd04 May be controllable"
+    },
+    {
+      "type": "upnp_device",
+      "name": "UPnP Device",
+      "ip": "192.168.0.20",
+      "location": "http://192.168.0.20:80/description.xml",
+      "protocol": "UPnP/SSDP",
+      "controllable": "\ud83d\udd04 Depends on device type",
+      "integration": "\ud83d\udd04 May be controllable"
+    },
+    {
+      "type": "upnp_device",
+      "name": "UPnP Device",
+      "ip": "192.168.0.20",
+      "location": "http://192.168.0.20:80/description.xml",
+      "protocol": "UPnP/SSDP",
+      "controllable": "\ud83d\udd04 Depends on device type",
+      "integration": "\ud83d\udd04 May be controllable"
+    },
+    {
+      "type": "upnp_device",
+      "name": "UPnP Device",
+      "ip": "192.168.0.20",
+      "location": "http://192.168.0.20:80/description.xml",
+      "protocol": "UPnP/SSDP",
+      "controllable": "\ud83d\udd04 Depends on device type",
+      "integration": "\ud83d\udd04 May be controllable"
+    },
+    {
+      "type": "upnp_device",
+      "name": "UPnP Device",
+      "ip": "192.168.0.20",
+      "location": "http://192.168.0.20:80/description.xml",
+      "protocol": "UPnP/SSDP",
+      "controllable": "\ud83d\udd04 Depends on device type",
+      "integration": "\ud83d\udd04 May be controllable"
+    },
+    {
+      "type": "upnp_device",
+      "name": "UPnP Device",
+      "ip": "192.168.0.20",
+      "location": "http://192.168.0.20:80/description.xml",
+      "protocol": "UPnP/SSDP",
+      "controllable": "\ud83d\udd04 Depends on device type",
+      "integration": "\ud83d\udd04 May be controllable"
+    },
+    {
+      "type": "upnp_device",
+      "name": "UPnP Device",
+      "ip": "192.168.0.39",
+      "location": "http://192.168.0.39:8060/",
+      "protocol": "UPnP/SSDP",
+      "controllable": "\ud83d\udd04 Depends on device type",
+      "integration": "\ud83d\udd04 May be controllable"
+    }
+  ]
+}

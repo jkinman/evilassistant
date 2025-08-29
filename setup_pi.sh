@@ -187,7 +187,7 @@ Type=simple
 User=$(whoami)
 WorkingDirectory=$(pwd)
 Environment=PATH=$(pwd)/.venv/bin
-ExecStart=$(pwd)/.venv/bin/python -m evilassistant --vad --clean
+ExecStart=$(pwd)/.venv/bin/python -m evilassistant
 Restart=always
 RestartSec=10
 
@@ -211,7 +211,7 @@ echo ""
 echo "2. 🧪 Test the assistant:"
 echo "   source .venv/bin/activate"
 echo "   export PHILIPS_HUE_BRIDGE_IP=192.168.1.xxx"
-echo "   python -m evilassistant --vad --clean"
+echo "   python -m evilassistant"
 echo ""
 echo "3. 🚀 Enable auto-start (optional):"
 echo "   sudo systemctl enable evil-assistant.service"

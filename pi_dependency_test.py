@@ -237,7 +237,7 @@ def main():
         print("❌ POOR! Significant issues detected.")
     
     print("\n🚀 Ready to test the full Evil Assistant!")
-    print("   Run: python -m evilassistant --vad --clean")
+    print("   Run: python -m evilassistant")
 
 if __name__ == "__main__":
     main()

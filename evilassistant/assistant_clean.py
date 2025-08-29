@@ -134,8 +134,20 @@ class SmartHomeHandler:
     def __init__(self, smart_home_controller):
         self.smart_home = smart_home_controller
         self.hue_bridge = None
+        self.home_assistant = None
         
-        # Initialize direct Hue connection for synchronous control
+        # Initialize Home Assistant integration
+        try:
+            from .home_assistant_integration import get_evil_home_assistant
+            self.home_assistant = get_evil_home_assistant()
+            if self.home_assistant.enabled:
+                print("✅ Home Assistant integration enabled")
+            else:
+                print("⚠️  Home Assistant integration disabled (no token)")
+        except ImportError as e:
+            print(f"⚠️  Home Assistant integration not available: {e}")
+        
+        # Initialize direct Hue connection for synchronous control (fallback)
         hue_ip = os.getenv("PHILIPS_HUE_BRIDGE_IP")
         if hue_ip:
             try:
@@ -224,8 +236,18 @@ class SmartHomeHandler:
         
         return None
     
-    def process_command(self, text):
+    async def process_command(self, text):
         """Process any smart home command."""
+        # Try Home Assistant first (most comprehensive)
+        if self.home_assistant and self.home_assistant.enabled:
+            try:
+                ha_response = await self.home_assistant.process_command(text)
+                if ha_response:
+                    return ha_response
+            except Exception as e:
+                print(f"Home Assistant command failed: {e}")
+        
+        # Fallback to direct integrations
         if self.is_light_command(text):
             return self.process_light_command(text)
         
@@ -417,13 +439,13 @@ class ConversationHandler:
         self.vad_processor = vad_processor
         self.model = model
     
-    def process_question(self, question):
+    async def process_question(self, question):
         """Process a question through smart home then AI if needed."""
         print(f"Question: {question}")
         print("Processing question...")
         
         # Try smart home first
-        smart_response = self.smart_home.process_command(question)
+        smart_response = await self.smart_home.process_command(question)
         if smart_response:
             print("🏠 Smart home command executed!")
             return smart_response
@@ -448,7 +470,7 @@ class ConversationHandler:
             if os.path.exists("response.wav"):
                 os.remove("response.wav")
 
-def run_clean_assistant():
+async def run_clean_assistant():
     """Run the clean, refactored Evil Assistant."""
     print("🔥 Starting Clean Evil Assistant")
     
@@ -488,7 +510,7 @@ def run_clean_assistant():
                         question = audio_handler.transcribe_audio(question_audio, model, "question")
                 
                 if question and len(question.strip()) > 2:
-                    response = conversation_handler.process_question(question)
+                    response = await conversation_handler.process_question(question)
                     conversation_handler.handle_response(response)
                     
                     # Clear extracted question after use
@@ -514,7 +536,7 @@ def run_clean_assistant():
                                 break
                                 
                             print(f"Follow-up: {follow_up}")
-                            response = conversation_handler.process_question(follow_up)
+                            response = await conversation_handler.process_question(follow_up)
                             conversation_handler.handle_response(response)
                     
                     else:

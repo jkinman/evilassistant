@@ -25,7 +25,8 @@ def main():
     
     try:
         from .assistant_clean import run_clean_assistant
-        run_clean_assistant()
+        import asyncio
+        asyncio.run(run_clean_assistant())
     except ImportError as e:
         logger.error(f"Assistant components not available: {e}")
         sys.exit(1)
