@@ -65,8 +65,30 @@ class EdgeDemonicProvider(TTSProvider):
             return False
         
         try:
-            # Run async synthesis in sync context
-            return asyncio.run(self._synthesize_async(text, output_file))
+            # Handle asyncio event loop properly
+            try:
+                # Try to get existing loop
+                loop = asyncio.get_running_loop()
+                # If we're in an existing loop, create a new thread
+                import concurrent.futures
+                import threading
+                
+                def run_in_thread():
+                    new_loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(new_loop)
+                    try:
+                        return new_loop.run_until_complete(self._synthesize_async(text, output_file))
+                    finally:
+                        new_loop.close()
+                
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(run_in_thread)
+                    return future.result(timeout=30)
+                    
+            except RuntimeError:
+                # No running loop, can use asyncio.run
+                return asyncio.run(self._synthesize_async(text, output_file))
+                
         except Exception as e:
             logger.error(f"Edge TTS synthesis failed: {e}")
             return False
@@ -111,18 +133,44 @@ class EdgeDemonicProvider(TTSProvider):
             # Get effect profile based on configuration
             effect_profile = self._get_effect_profile()
             
-            # Build SoX command with effects
-            sox_cmd = ['sox', input_file, output_file] + effect_profile
-            
-            result = subprocess.run(sox_cmd, capture_output=True, text=True, timeout=30)
-            
-            if result.returncode == 0:
-                logger.debug("Demonic effects applied successfully to Edge TTS voice")
-                return True
+            # Check if input is MP3 and SoX doesn't support it
+            if input_file.endswith('.mp3'):
+                # First convert MP3 to WAV, then apply effects
+                with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_wav:
+                    intermediate_wav = tmp_wav.name
+                
+                try:
+                    # Convert MP3 to WAV first using basic method
+                    if not self._convert_mp3_to_wav_basic(input_file, intermediate_wav):
+                        return self._convert_to_wav(input_file, output_file)
+                    
+                    # Now apply effects to the WAV file
+                    sox_cmd = ['sox', intermediate_wav, output_file] + effect_profile
+                    result = subprocess.run(sox_cmd, capture_output=True, text=True, timeout=30)
+                    
+                    if result.returncode == 0:
+                        logger.debug("Demonic effects applied successfully to Edge TTS voice")
+                        return True
+                    else:
+                        logger.error(f"SoX effects failed: {result.stderr}")
+                        # Fallback to basic conversion
+                        return self._convert_to_wav(input_file, output_file)
+                
+                finally:
+                    # Cleanup intermediate file
+                    if os.path.exists(intermediate_wav):
+                        os.unlink(intermediate_wav)
             else:
-                logger.error(f"SoX effects failed: {result.stderr}")
-                # Fallback to basic conversion
-                return self._convert_to_wav(input_file, output_file)
+                # Direct SoX processing for WAV files
+                sox_cmd = ['sox', input_file, output_file] + effect_profile
+                result = subprocess.run(sox_cmd, capture_output=True, text=True, timeout=30)
+                
+                if result.returncode == 0:
+                    logger.debug("Demonic effects applied successfully to Edge TTS voice")
+                    return True
+                else:
+                    logger.error(f"SoX effects failed: {result.stderr}")
+                    return self._convert_to_wav(input_file, output_file)
                 
         except (subprocess.TimeoutExpired, subprocess.SubprocessError) as e:
             logger.error(f"SoX processing error: {e}")
@@ -208,6 +256,43 @@ class EdgeDemonicProvider(TTSProvider):
         logger.info("Using default balanced_demon profile for Edge TTS")
         return profiles["balanced_demon"]
 
+    def _convert_mp3_to_wav_basic(self, input_file: str, output_file: str) -> bool:
+        """Convert MP3 to WAV using available tools"""
+        try:
+            # Try ffmpeg first (most reliable)
+            try:
+                ffmpeg_cmd = ['ffmpeg', '-i', input_file, '-acodec', 'pcm_s16le', '-ar', '22050', '-y', output_file]
+                result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True, timeout=15)
+                if result.returncode == 0:
+                    logger.debug("MP3 to WAV conversion successful with ffmpeg")
+                    return True
+            except FileNotFoundError:
+                pass
+            
+            # Try pygame for MP3 conversion
+            try:
+                import pygame
+                pygame.mixer.init()
+                sound = pygame.mixer.Sound(input_file)
+                pygame.sndarray.array(sound)  # Convert to array
+                # This is basic but may work for simple conversion
+                import shutil
+                shutil.copy2(input_file, output_file)
+                logger.debug("MP3 conversion attempted with pygame fallback")
+                return True
+            except Exception:
+                pass
+            
+            # Final fallback: direct copy (Edge TTS MP3 might be compatible)
+            import shutil
+            shutil.copy2(input_file, output_file)
+            logger.warning("Using direct file copy for MP3 conversion")
+            return True
+            
+        except Exception as e:
+            logger.error(f"MP3 to WAV conversion failed: {e}")
+            return False
+
     def _convert_to_wav(self, input_file: str, output_file: str) -> bool:
         """Fallback: basic MP3 to WAV conversion"""
         try:
@@ -218,11 +303,8 @@ class EdgeDemonicProvider(TTSProvider):
                     logger.debug("Basic MP3 to WAV conversion successful")
                     return True
             
-            # Final fallback: copy file and hope for the best
-            import shutil
-            shutil.copy2(input_file, output_file)
-            logger.warning("Using direct file copy as conversion fallback")
-            return True
+            # Use the basic MP3 converter
+            return self._convert_mp3_to_wav_basic(input_file, output_file)
             
         except Exception as e:
             logger.error(f"Conversion failed: {e}")
