@@ -12,7 +12,8 @@ def create_configured_engine(profile_name: str = "piper_ryan_demonic") -> TTSEng
     engine = TTSEngine()
     
     # Priority 0: gTTS Demonic (fast, free, proven demonic voice - PRIMARY)
-    gtts_config = TTSConfig(effects=["demonic_transformation"])
+    # Use balanced_demon profile for optimal masculine sound (rated 4/5 masculinity)
+    gtts_config = TTSConfig(effects=["balanced_demon"])
     engine.add_provider("gtts_demonic", gtts_config)
     
     # Priority 1: Piper (high quality neural voices, free)

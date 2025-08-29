@@ -7,7 +7,7 @@ import os
 import tempfile
 import subprocess
 import logging
-from typing import Optional
+from typing import Optional, List
 
 from ..base import TTSProvider
 from ..config import TTSConfig
@@ -61,8 +61,10 @@ class GTTSDemonicProvider(TTSProvider):
         try:
             from gtts import gTTS
             
-            # Generate base TTS
-            tts = gTTS(text=text, lang='en', slow=False)
+            # Generate base TTS with masculine voice configuration
+            # Use slow=True for deeper, more menacing base voice
+            # Try different TLD domains for voice variation (some sound more masculine)
+            tts = gTTS(text=text, lang='en', slow=True, tld='com.au')  # Australian TLD often deeper
             
             # Save to temporary MP3 file
             with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as tmp_mp3:
@@ -91,18 +93,13 @@ class GTTSDemonicProvider(TTSProvider):
             return False
     
     def _apply_demonic_effects(self, input_file: str, output_file: str) -> bool:
-        """Apply demonic effects using sox"""
+        """Apply demonic effects using sox with configurable profiles"""
         try:
-            # Demonic effect chain
-            sox_cmd = [
-                'sox', input_file, output_file,
-                'pitch', '-300',      # Much lower pitch
-                'reverb', '40',       # Reverb for depth
-                'bass', '+15',        # Heavy bass boost
-                'treble', '-8',       # Reduce treble for darker sound
-                'vol', '0.75',        # Prevent clipping
-                'overdrive', '5'      # Slight distortion
-            ]
+            # Get effect profile from config or use default
+            effect_profile = self._get_effect_profile()
+            
+            # Build sox command with selected profile
+            sox_cmd = ['sox', input_file, output_file] + effect_profile
             
             result = subprocess.run(sox_cmd, capture_output=True, text=True, timeout=30)
             
@@ -117,6 +114,81 @@ class GTTSDemonicProvider(TTSProvider):
         except (subprocess.TimeoutExpired, subprocess.SubprocessError) as e:
             logger.error(f"Sox processing error: {e}")
             return self._convert_mp3_to_wav(input_file, output_file)
+    
+    def _get_effect_profile(self) -> List[str]:
+        """Get demonic effect profile based on configuration"""
+        
+        # Available demonic voice profiles - optimized for masculine sound
+        profiles = {
+            "fast_demon": [
+                'pitch', '-500',      # Much deeper to counteract feminine voice
+                'bass', '+20',        # Heavy bass for masculine sound
+                'vol', '0.8'          # Higher volume since we're going deeper
+            ],
+            
+            "balanced_demon": [
+                'pitch', '-550',      # Very deep pitch for masculine demon
+                'reverb', '40',       # Moderate reverb
+                'bass', '+25',        # Strong bass boost
+                'treble', '-10',      # Reduce treble for darker masculine sound
+                'vol', '0.75'         # Volume control
+            ],
+            
+            "premium_demon": [
+                'pitch', '-600',      # Extremely deep masculine pitch
+                'reverb', '60',       # Heavy reverb
+                'bass', '+30',        # Maximum bass for deep masculine voice
+                'treble', '-15',      # Very dark sound
+                'tremolo', '6',       # Slower tremolo for menacing effect
+                'vol', '0.7',         # Volume control
+                'overdrive', '4'      # Light distortion for growl
+            ],
+            
+            "nightmare_whisper": [
+                'pitch', '-580',      # Deep masculine whisper
+                'reverb', '90',       # Maximum reverb for otherworldly effect
+                'bass', '+35',        # Extreme bass
+                'treble', '-20',      # Very dark masculine tone
+                'echo', '0.8', '0.88', '80', '0.3',  # Longer echo
+                'vol', '0.65',        # Lower volume for whisper effect
+                'overdrive', '6'      # More growl
+            ],
+            
+            "ancient_evil": [
+                'pitch', '-520',      # Deep but still intelligible
+                'reverb', '70', '50', # Cathedral reverb
+                'bass', '+28',        # Heavy masculine bass
+                'treble', '-12',      # Dark tone
+                'chorus', '0.7', '0.85', '60', '0.3', '0.5', '2', '-s',  # Deeper choir
+                'vol', '0.7'          # Volume control
+            ],
+            
+            "brutal_overlord": [   # NEW: Extra masculine option
+                'pitch', '-650',      # Extremely deep
+                'reverb', '50',       # Moderate reverb for clarity
+                'bass', '+40',        # Maximum bass
+                'treble', '-25',      # Eliminate high frequencies
+                'vol', '0.8',         # Compensate for deep pitch
+                'overdrive', '8'      # Heavy distortion for growl
+            ]
+        }
+        
+        # Determine which profile to use
+        # Check if custom effects are provided
+        if self.config.effects and len(self.config.effects) > 1:
+            # Custom effects provided
+            return self.config.effects
+        
+        # Check for specific profile request in effects
+        if self.config.effects and len(self.config.effects) == 1:
+            profile_name = self.config.effects[0]
+            if profile_name in profiles:
+                logger.info(f"Using demonic profile: {profile_name}")
+                return profiles[profile_name]
+        
+        # Default to balanced demon (good quality + speed)
+        logger.info("Using default balanced_demon profile")
+        return profiles["balanced_demon"]
     
     def _convert_mp3_to_wav(self, input_file: str, output_file: str) -> bool:
         """Fallback: simple MP3 to WAV conversion"""
