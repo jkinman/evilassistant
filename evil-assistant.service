@@ -1,0 +1,44 @@
+[Unit]
+Description=Evil Assistant - Demonic Voice Assistant
+Documentation=https://github.com/jkinman/evilassistant
+After=network-online.target sound.target pulseaudio.service
+Wants=network-online.target
+RequiresMountsFor=/home
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/evilassistant
+
+# Environment setup
+Environment=PATH=/home/pi/evilassistant/.venv/bin
+Environment=PYTHONPATH=/home/pi/evilassistant
+Environment=PHILIPS_HUE_BRIDGE_IP=192.168.0.20
+
+# Main command
+ExecStart=/home/pi/evilassistant/.venv/bin/python -m evilassistant --vad --clean
+
+# Process management
+Restart=always
+RestartSec=10
+StartLimitInterval=60
+StartLimitBurst=3
+
+# Security and resource limits
+NoNewPrivileges=true
+MemoryMax=2G
+TasksMax=100
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=evil-assistant
+
+# Graceful shutdown
+TimeoutStopSec=30
+KillMode=mixed
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target
