@@ -363,5 +363,4 @@ PWM_FREQUENCY_HZ=2000
 6. Fine-tune for your environment
 
 ---
-gittoken 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
 **Ready to unleash the Evil Assistant on your Raspberry Pi!** 🔥🍓👹
