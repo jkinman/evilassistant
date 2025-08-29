@@ -68,7 +68,7 @@ print_step "Installing Docker..."
 if ! command -v docker &> /dev/null; then
     curl -fsSL https://get.docker.com -o get-docker.sh
     sudo sh get-docker.sh
-    sudo usermod -aG docker pi
+    sudo usermod -aG docker $USER
     rm get-docker.sh
     print_success "Docker installed successfully"
 else
@@ -86,9 +86,9 @@ fi
 
 # Create Home Assistant directory
 print_step "Creating Home Assistant directory..."
-HA_DIR="/home/pi/homeassistant"
+HA_DIR="/home/$USER/homeassistant"
 sudo mkdir -p "$HA_DIR"
-sudo chown pi:pi "$HA_DIR"
+sudo chown $USER:$USER "$HA_DIR"
 print_success "Home Assistant directory created: $HA_DIR"
 
 # Create docker-compose.yml for Home Assistant
@@ -250,12 +250,12 @@ echo ""
 
 # Create management script
 print_step "Creating Home Assistant management script..."
-cat > "/home/pi/ha_manager.sh" << 'EOF'
+cat > "/home/$USER/ha_manager.sh" << 'EOF'
 #!/bin/bash
 
 # Home Assistant Management Script
 
-HA_DIR="/home/pi/homeassistant"
+HA_DIR="/home/$USER/homeassistant"
 cd "$HA_DIR"
 
 case "$1" in
@@ -310,8 +310,8 @@ case "$1" in
 esac
 EOF
 
-chmod +x "/home/pi/ha_manager.sh"
-print_success "Management script created: /home/pi/ha_manager.sh"
+chmod +x "/home/$USER/ha_manager.sh"
+print_success "Management script created: /home/$USER/ha_manager.sh"
 
 # Create Evil Assistant integration script
 print_step "Creating Evil Assistant integration helper..."
