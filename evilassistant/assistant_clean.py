@@ -8,10 +8,13 @@ import wave
 import tempfile
 import pygame
 import requests
+import logging
 from faster_whisper import WhisperModel
 from .config import *
 from .simple_vad import SimpleVADRecorder
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 # Global components
 vad_processor = None

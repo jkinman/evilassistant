@@ -7,8 +7,11 @@ import sounddevice as sd
 import numpy as np
 import collections
 import time
+import logging
 from typing import Optional
 from .config import RATE, CHANNELS, SILENCE_THRESHOLD
+
+logger = logging.getLogger(__name__)
 
 class SimpleVADRecorder:
     """Simple VAD recorder using continuous audio stream and energy-based detection."""
