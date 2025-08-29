@@ -62,9 +62,9 @@ class GTTSDemonicProvider(TTSProvider):
             from gtts import gTTS
             
             # Generate base TTS with masculine voice configuration
-            # Use slow=True for deeper, more menacing base voice
+            # Use slow=False for speed, we'll handle depth with pitch effects
             # Try different TLD domains for voice variation (some sound more masculine)
-            tts = gTTS(text=text, lang='en', slow=True, tld='com.au')  # Australian TLD often deeper
+            tts = gTTS(text=text, lang='en', slow=False, tld='com.au')  # Australian TLD often deeper
             
             # Save to temporary MP3 file
             with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as tmp_mp3:
@@ -118,58 +118,89 @@ class GTTSDemonicProvider(TTSProvider):
     def _get_effect_profile(self) -> List[str]:
         """Get demonic effect profile based on configuration"""
         
-        # Available demonic voice profiles - optimized for masculine sound
+        # Available demonic voice profiles - SPEED OPTIMIZED
         profiles = {
             "fast_demon": [
-                'pitch', '-500',      # Much deeper to counteract feminine voice
-                'bass', '+20',        # Heavy bass for masculine sound
-                'vol', '0.8'          # Higher volume since we're going deeper
+                'pitch', '-600',      # Single deep pitch for speed
+                'bass', '+20',        # Moderate bass boost
+                'vol', '0.9'          # Higher volume
             ],
             
             "balanced_demon": [
-                'pitch', '-550',      # Very deep pitch for masculine demon
-                'reverb', '40',       # Moderate reverb
+                'pitch', '-700',      # Deep pitch, single pass
                 'bass', '+25',        # Strong bass boost
-                'treble', '-10',      # Reduce treble for darker masculine sound
-                'vol', '0.75'         # Volume control
+                'treble', '-10',      # Reduce treble for darker sound
+                'vol', '0.85'         # Volume control
             ],
             
             "premium_demon": [
-                'pitch', '-600',      # Extremely deep masculine pitch
-                'reverb', '60',       # Heavy reverb
-                'bass', '+30',        # Maximum bass for deep masculine voice
-                'treble', '-15',      # Very dark sound
-                'tremolo', '6',       # Slower tremolo for menacing effect
-                'vol', '0.7',         # Volume control
-                'overdrive', '4'      # Light distortion for growl
+                'pitch', '-300',      # First moderate shift
+                'pitch', '-300',      # Second shift (compound)
+                'pitch', '-300',      # Third shift (triple effect)
+                'reverb', '50',       # Heavy reverb
+                'bass', '+30',        # Strong bass
+                'treble', '-12',      # Dark sound
+                'vol', '0.8',         # Volume control
+                'overdrive', '3'      # Light distortion
             ],
             
             "nightmare_whisper": [
-                'pitch', '-580',      # Deep masculine whisper
-                'reverb', '90',       # Maximum reverb for otherworldly effect
+                'pitch', '-500',      # Deep masculine whisper
+                'pitch', '-300',      # Additional depth
+                'reverb', '80',       # Maximum reverb for otherworldly effect
                 'bass', '+35',        # Extreme bass
                 'treble', '-20',      # Very dark masculine tone
-                'echo', '0.8', '0.88', '80', '0.3',  # Longer echo
-                'vol', '0.65',        # Lower volume for whisper effect
-                'overdrive', '6'      # More growl
+                'echo', '0.8', '0.88', '60', '0.3',  # Echo effect
+                'vol', '0.7',         # Lower volume for whisper effect
+                'overdrive', '5'      # Growl
             ],
             
             "ancient_evil": [
-                'pitch', '-520',      # Deep but still intelligible
-                'reverb', '70', '50', # Cathedral reverb
+                'pitch', '-350',      # Moderate but clear depth
+                'pitch', '-350',      # Double shift
+                'reverb', '60',       # Cathedral reverb
                 'bass', '+28',        # Heavy masculine bass
-                'treble', '-12',      # Dark tone
-                'chorus', '0.7', '0.85', '60', '0.3', '0.5', '2', '-s',  # Deeper choir
-                'vol', '0.7'          # Volume control
+                'treble', '-10',      # Dark tone
+                'chorus', '0.6', '0.9', '50', '0.25', '0.4', '2', '-s',  # Choir effect
+                'vol', '0.8'          # Volume control
             ],
             
-            "brutal_overlord": [   # NEW: Extra masculine option
-                'pitch', '-650',      # Extremely deep
-                'reverb', '50',       # Moderate reverb for clarity
+            "brutal_overlord": [   # Experimental: Maximum depth
+                'pitch', '-600',      # Deep base
+                'pitch', '-600',      # Double deep
+                'reverb', '40',       # Moderate reverb for clarity
                 'bass', '+40',        # Maximum bass
                 'treble', '-25',      # Eliminate high frequencies
-                'vol', '0.8',         # Compensate for deep pitch
-                'overdrive', '8'      # Heavy distortion for growl
+                'vol', '0.9',         # Compensate for deep pitch
+                'overdrive', '8'      # Heavy distortion
+            ],
+            
+            "demon_lord": [        # NEW: Balanced clarity and depth
+                'pitch', '-350',      # Moderate depth
+                'pitch', '-250',      # Additional depth
+                'reverb', '30',       # Light reverb for clarity
+                'bass', '+25',        # Strong bass
+                'treble', '-8',       # Slightly darker tone
+                'vol', '0.85'         # Good volume
+            ],
+            
+            "experimental_deep": [ # SPEED OPTIMIZED: Single pass deep
+                'pitch', '-800',      # Single deep pitch shift for speed
+                'bass', '+30',        # Strong bass boost
+                'vol', '0.9'          # Higher volume to compensate
+            ],
+            
+            "lightning_demon": [   # NEW: Maximum speed, good depth
+                'pitch', '-650',      # Deep but fast
+                'bass', '+25',        # Bass boost
+                'vol', '0.9'          # Volume
+            ],
+            
+            "speed_overlord": [    # NEW: Optimized for real-time
+                'pitch', '-750',      # Very deep, single pass
+                'bass', '+30',        # Strong masculine bass
+                'treble', '-15',      # Dark tone
+                'vol', '0.9'          # Volume compensation
             ]
         }
         
