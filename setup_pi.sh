@@ -75,6 +75,7 @@ echo "📚 Installing Python dependencies..."
 pip install faster-whisper pygame numpy requests httpx
 pip install sounddevice scipy python-dotenv
 pip install piper-tts phue
+pip install RPi.GPIO  # For GPIO/PWM LED control
 print_status "Python dependencies installed"
 
 # Install package in development mode

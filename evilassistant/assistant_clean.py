@@ -258,7 +258,17 @@ class SmartHomeHandler:
         return None
 
 class AudioHandler:
-    """Handles all audio processing and playback."""
+    """Handles all audio processing and playback with improved architecture."""
+    
+    def __init__(self):
+        """Initialize audio handler with audio manager"""
+        try:
+            from .audio_manager import get_audio_manager
+            self.audio_manager = get_audio_manager()
+            logger.info("✅ Audio handler initialized with audio manager")
+        except Exception as e:
+            logger.error(f"Failed to initialize audio manager: {e}")
+            self.audio_manager = None
     
     @staticmethod
     def transcribe_audio(audio_data, model, file_suffix="temp"):
@@ -284,110 +294,50 @@ class AudioHandler:
                 if os.path.exists(tmp_file.name):
                     os.unlink(tmp_file.name)
     
-    @staticmethod
-    def synthesize_speech(text, output_file):
-        """Generate speech using configurable TTS engine."""
-        try:
-            from .tts import create_configured_engine
-            from .config import TTS_VOICE_PROFILE
-            
-            # Create configured TTS engine with fallback
-            engine = create_configured_engine(TTS_VOICE_PROFILE)
-            
-            success = engine.synthesize(text, output_file)
-            if success:
-                provider = engine.get_current_provider()
-                print(f"✅ TTS successful with {provider}")
-                return True
-            else:
-                print("❌ All TTS providers failed")
-                return False
-                
-        except Exception as e:
-            print(f"TTS Engine error: {e}")
+    def synthesize_speech(self, text, output_file):
+        """Synthesize speech using the audio manager."""
+        if self.audio_manager:
+            return self.audio_manager.synthesize_speech(text, output_file)
+        else:
+            logger.error("Audio manager not available for speech synthesis")
             return False
     
-    @staticmethod
-    def play_audio_file_with_interrupt(file_path, vad_processor, model):
-        """Play audio file with interrupt capability for stop commands."""
-        import threading
-        import time
-        
-        try:
-            pygame.mixer.music.load(file_path)
-            pygame.mixer.music.play()
-            
-            # Monitor for stop commands during playback
-            while pygame.mixer.music.get_busy():
-                # Quick check for stop command (non-blocking)
-                try:
-                    # Very short recording to check for "stop" 
-                    import sounddevice as sd
-                    import numpy as np
-                    
-                    chunk_size = int(vad_processor.sample_rate * 0.2)  # 200ms
-                    chunk = sd.rec(chunk_size, samplerate=vad_processor.sample_rate, 
-                                  channels=1, dtype='float32')
-                    sd.wait()
-                    
-                    # Quick energy check
-                    energy = float(np.sqrt(np.mean(chunk.astype(np.float32) ** 2)) * 32767)
-                    if energy > vad_processor.energy_threshold * 2:  # Higher threshold during playback
-                        # Quick transcription check for stop words
-                        import tempfile
-                        import wave
-                        
-                        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_file:
-                            with wave.open(tmp_file.name, 'wb') as wf:
-                                wf.setnchannels(1)
-                                wf.setsampwidth(2)
-                                wf.setframerate(vad_processor.sample_rate)
-                                audio_int16 = (chunk * 32767).astype(np.int16)
-                                wf.writeframes(audio_int16.tobytes())
-                            
-                            try:
-                                segments, _ = model.transcribe(
-                                    tmp_file.name, 
-                                    beam_size=WHISPER_BEAM_SIZE,
-                                    language=WHISPER_LANGUAGE,
-                                    vad_filter=WHISPER_VAD_FILTER
-                                )
-                                transcription = " ".join([segment.text for segment in segments]).strip().lower()
-                                
-                                if any(word in transcription for word in ['stop', 'shut up', 'be silent', 'unsummon']):
-                                    print("🛑 Stop command detected during playback!")
-                                    pygame.mixer.music.stop()
-                                    import os
-                                    if os.path.exists(tmp_file.name):
-                                        os.unlink(tmp_file.name)
-                                    return True  # Interrupted
-                            except:
-                                pass  # Ignore transcription errors during playback
-                            finally:
-                                import os
-                                if os.path.exists(tmp_file.name):
-                                    os.unlink(tmp_file.name)
-                    
-                    pygame.time.wait(100)  # Small delay between checks
-                    
-                except Exception:
-                    pygame.time.wait(100)  # Fallback delay
-                    
-        except Exception as e:
-            print(f"Error playing audio: {e}")
-        
-        return False  # Completed normally
+    def play_audio_file_with_interrupt(self, file_path, vad_processor, model):
+        """Play audio file with interrupt capability and LED control."""
+        if self.audio_manager:
+            return self.audio_manager.play_audio_file_with_interrupt(
+                file_path, vad_processor, model, enable_led_control=True
+            )
+        else:
+            logger.error("Audio manager not available for playback")
+            return False
     
-    @staticmethod
-    def play_audio_file(file_path):
-        """Simple audio playback without interruption."""
-        try:
-            pygame.mixer.music.load(file_path)
-            pygame.mixer.music.play()
-            while pygame.mixer.music.get_busy():
-                pygame.time.wait(100)
-        except Exception as e:
-            print(f"Error playing audio: {e}")
+    def play_audio_file(self, file_path):
+        """Simple audio playback with LED control."""
+        if self.audio_manager:
+            return self.audio_manager.play_audio_file(file_path, enable_led_control=True)
+        else:
+            logger.error("Audio manager not available for playback")
+            return False
+    
+    def test_led_functionality(self):
+        """Test LED functionality through audio manager."""
+        if self.audio_manager:
+            self.audio_manager.test_led_functionality()
+        else:
+            logger.warning("Audio manager not available for LED test")
+    
+    def get_status(self):
+        """Get audio system status."""
+        if self.audio_manager:
+            return self.audio_manager.get_status()
+        else:
+            return {"error": "Audio manager not available"}
+    
+    def cleanup(self):
+        """Clean up audio resources."""
+        if self.audio_manager:
+            self.audio_manager.cleanup()
 
 class AIHandler:
     """Handles AI response generation."""
@@ -520,7 +470,7 @@ async def run_clean_assistant(enable_transcription=False):
     
     # Initialize handlers
     smart_home_handler = SmartHomeHandler(smart_home_ctrl)
-    audio_handler = AudioHandler()
+    audio_handler = AudioHandler()  # Now uses constructor with audio manager
     ai_handler = AIHandler()
     conversation_handler = ConversationHandler(smart_home_handler, audio_handler, ai_handler, vad, model)
     
@@ -625,6 +575,13 @@ async def run_clean_assistant(enable_transcription=False):
         print(f"Error in assistant: {e}")
         import traceback
         traceback.print_exc()
+    finally:
+        # Clean up resources
+        try:
+            audio_handler.cleanup()
+            logger.info("✅ Resources cleaned up")
+        except Exception as e:
+            logger.error(f"Error during cleanup: {e}")
 
 if __name__ == "__main__":
     run_clean_assistant()
