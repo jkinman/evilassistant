@@ -53,7 +53,7 @@ sudo apt install -y \
     libasound2-dev portaudio19-dev \
     python3-pip python3-venv python3-dev \
     git curl wget \
-    sox alsa-utils pulseaudio \
+    sox libsox-fmt-all alsa-utils pulseaudio \
     espeak espeak-data
 print_status "Essential packages installed"
 

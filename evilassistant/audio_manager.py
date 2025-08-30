@@ -121,9 +121,24 @@ class AudioManager:
         try:
             logger.info(f"🔊 Playing audio: {file_path}")
             
-            # Load and start playback
-            pygame.mixer.music.load(file_path)
-            pygame.mixer.music.play()
+            # Load and start playback with error handling
+            try:
+                pygame.mixer.music.load(file_path)
+                pygame.mixer.music.play()
+            except pygame.error as pygame_err:
+                if "Unknown WAVE format" in str(pygame_err):
+                    logger.warning(f"Pygame WAVE format issue: {pygame_err}")
+                    # Try converting the file first
+                    if self._convert_audio_for_pygame(file_path):
+                        converted_path = file_path.replace('.wav', '_converted.wav')
+                        pygame.mixer.music.load(converted_path)
+                        pygame.mixer.music.play()
+                        # Clean up converted file after playback
+                        self._cleanup_converted_file = converted_path
+                    else:
+                        raise pygame_err
+                else:
+                    raise pygame_err
             
             # Start LED control if enabled and available
             led_started = False
@@ -142,6 +157,17 @@ class AudioManager:
             # Stop LED control
             if led_started:
                 self._stop_led_control()
+            
+            # Clean up any converted file
+            if hasattr(self, '_cleanup_converted_file'):
+                try:
+                    if os.path.exists(self._cleanup_converted_file):
+                        os.remove(self._cleanup_converted_file)
+                        logger.debug(f"Cleaned up converted file: {self._cleanup_converted_file}")
+                except Exception as e:
+                    logger.warning(f"Failed to clean up converted file: {e}")
+                finally:
+                    delattr(self, '_cleanup_converted_file')
             
             logger.info("✅ Audio playback completed")
             return True
@@ -172,9 +198,24 @@ class AudioManager:
         try:
             logger.info(f"🔊 Playing audio with interrupt capability: {file_path}")
             
-            # Load and start playback
-            pygame.mixer.music.load(file_path)
-            pygame.mixer.music.play()
+            # Load and start playback with error handling
+            try:
+                pygame.mixer.music.load(file_path)
+                pygame.mixer.music.play()
+            except pygame.error as pygame_err:
+                if "Unknown WAVE format" in str(pygame_err):
+                    logger.warning(f"Pygame WAVE format issue: {pygame_err}")
+                    # Try converting the file first
+                    if self._convert_audio_for_pygame(file_path):
+                        converted_path = file_path.replace('.wav', '_converted.wav')
+                        pygame.mixer.music.load(converted_path)
+                        pygame.mixer.music.play()
+                        # Clean up converted file after playback
+                        self._cleanup_converted_file = converted_path
+                    else:
+                        raise pygame_err
+                else:
+                    raise pygame_err
             
             # Start LED control if enabled and available
             led_started = False
@@ -204,6 +245,17 @@ class AudioManager:
             # Stop LED control
             if led_started:
                 self._stop_led_control()
+            
+            # Clean up any converted file
+            if hasattr(self, '_cleanup_converted_file'):
+                try:
+                    if os.path.exists(self._cleanup_converted_file):
+                        os.remove(self._cleanup_converted_file)
+                        logger.debug(f"Cleaned up converted file: {self._cleanup_converted_file}")
+                except Exception as e:
+                    logger.warning(f"Failed to clean up converted file: {e}")
+                finally:
+                    delattr(self, '_cleanup_converted_file')
             
             logger.info("✅ Audio playback completed normally")
             return False  # Not interrupted
@@ -239,24 +291,67 @@ class AudioManager:
     def _load_audio_data(self, file_path: str):
         """Load audio file data for LED control"""
         try:
-            with wave.open(file_path, 'rb') as wf:
-                frames = wf.readframes(wf.getnframes())
-                audio_data = np.frombuffer(frames, dtype=np.int16)
+            # Try multiple methods to load audio data
+            audio_data = None
+            
+            # Method 1: Try with wave module (most compatible)
+            try:
+                with wave.open(file_path, 'rb') as wf:
+                    frames = wf.readframes(wf.getnframes())
+                    if wf.getsampwidth() == 2:  # 16-bit
+                        audio_data = np.frombuffer(frames, dtype=np.int16)
+                    elif wf.getsampwidth() == 4:  # 32-bit
+                        audio_data = np.frombuffer(frames, dtype=np.int32)
+                        audio_data = audio_data.astype(np.int16)  # Convert to 16-bit
+                    else:
+                        raise ValueError(f"Unsupported sample width: {wf.getsampwidth()}")
+                    
+                    # Convert to float32 and normalize
+                    audio_data = audio_data.astype(np.float32) / 32768.0
+                    
+                    # Handle stereo by taking left channel
+                    if wf.getnchannels() == 2:
+                        audio_data = audio_data[::2]
+                        
+                    logger.debug(f"Loaded audio data with wave module: {len(audio_data)} samples")
+                    
+            except Exception as wave_error:
+                logger.debug(f"Wave module failed: {wave_error}, trying soundfile")
                 
-                # Convert to float32 and normalize
-                audio_data = audio_data.astype(np.float32) / 32768.0
+                # Method 2: Try with soundfile (if available)
+                try:
+                    import soundfile as sf
+                    audio_data, sample_rate = sf.read(file_path)
+                    
+                    # Convert to mono if stereo
+                    if len(audio_data.shape) > 1:
+                        audio_data = audio_data[:, 0]
+                    
+                    logger.debug(f"Loaded audio data with soundfile: {len(audio_data)} samples")
+                    
+                except ImportError:
+                    logger.debug("soundfile not available, trying pygame")
+                except Exception as sf_error:
+                    logger.debug(f"soundfile failed: {sf_error}, trying pygame")
                 
-                # Handle stereo by taking left channel
-                if wf.getnchannels() == 2:
-                    audio_data = audio_data[::2]
-                
+                # Method 3: Fallback - generate silent data (prevents crashes)
+                if audio_data is None:
+                    logger.warning(f"Could not load audio data from {file_path}, using silent data")
+                    audio_data = np.zeros(1024, dtype=np.float32)
+            
+            if audio_data is not None:
                 with self._audio_lock:
                     self._current_audio_data = audio_data
                     
-                logger.debug(f"Loaded audio data: {len(audio_data)} samples")
+                logger.debug(f"Audio data loaded successfully: {len(audio_data)} samples")
+            else:
+                logger.error("Failed to load audio data with any method")
                 
         except Exception as e:
             logger.error(f"Failed to load audio data: {e}")
+            # Use silent fallback to prevent crashes
+            with self._audio_lock:
+                self._current_audio_data = np.zeros(1024, dtype=np.float32)
     
     def _get_current_audio_chunk(self) -> Optional[np.ndarray]:
         """Get current audio chunk for LED control"""
@@ -322,6 +417,41 @@ class AudioManager:
             
         except Exception:
             return False  # Don't interrupt on errors
+    
+    def _convert_audio_for_pygame(self, file_path: str) -> bool:
+        """Convert audio file to pygame-compatible format"""
+        try:
+            import subprocess
+            
+            converted_path = file_path.replace('.wav', '_converted.wav')
+            
+            # Use ffmpeg to convert to standard PCM WAV format
+            cmd = [
+                'ffmpeg', '-y', '-i', file_path,
+                '-acodec', 'pcm_s16le',  # 16-bit PCM
+                '-ar', '22050',          # 22.05kHz sample rate  
+                '-ac', '2',              # Stereo
+                converted_path
+            ]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            
+            if result.returncode == 0:
+                logger.info(f"Audio converted successfully: {converted_path}")
+                return True
+            else:
+                logger.error(f"Audio conversion failed: {result.stderr}")
+                return False
+                
+        except subprocess.TimeoutExpired:
+            logger.error("Audio conversion timeout")
+            return False
+        except FileNotFoundError:
+            logger.error("ffmpeg not found for audio conversion")
+            return False
+        except Exception as e:
+            logger.error(f"Audio conversion error: {e}")
+            return False
     
     def test_led_functionality(self):
         """Test LED functionality"""
