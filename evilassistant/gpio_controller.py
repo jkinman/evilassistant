@@ -59,21 +59,38 @@ class GPIOController:
             return
             
         try:
-            import RPi.GPIO as GPIO
-            
-            # Setup GPIO
-            GPIO.setmode(GPIO.BCM)
-            GPIO.setup(self.config.pin, GPIO.OUT)
-            
-            # Create PWM instance
-            self.pwm = GPIO.PWM(self.config.pin, self.config.frequency)
-            self.pwm.start(0)  # Start with 0% duty cycle
-            
-            self.gpio_available = True
-            logger.info(f"✅ GPIO PWM initialized on pin {self.config.pin} at {self.config.frequency}Hz")
+            # Try gpiozero first (better Pi 4/5 support)
+            try:
+                from gpiozero import PWMOutputDevice
+                
+                # Create PWM device
+                self.pwm = PWMOutputDevice(self.config.pin, frequency=self.config.frequency)
+                self.pwm.value = 0.0  # Start with 0% duty cycle
+                
+                self.gpio_available = True
+                self._use_gpiozero = True
+                logger.info(f"✅ GPIO PWM initialized with gpiozero on pin {self.config.pin} at {self.config.frequency}Hz")
+                
+            except ImportError:
+                logger.debug("gpiozero not available, trying RPi.GPIO")
+                
+                # Fallback to RPi.GPIO
+                import RPi.GPIO as GPIO
+                
+                # Setup GPIO
+                GPIO.setmode(GPIO.BCM)
+                GPIO.setup(self.config.pin, GPIO.OUT)
+                
+                # Create PWM instance
+                self.pwm = GPIO.PWM(self.config.pin, self.config.frequency)
+                self.pwm.start(0)  # Start with 0% duty cycle
+                
+                self.gpio_available = True
+                self._use_gpiozero = False
+                logger.info(f"✅ GPIO PWM initialized with RPi.GPIO on pin {self.config.pin} at {self.config.frequency}Hz")
             
         except ImportError:
-            logger.warning("RPi.GPIO not available - GPIO PWM disabled")
+            logger.warning("Neither gpiozero nor RPi.GPIO available - GPIO PWM disabled")
         except Exception as e:
             logger.error(f"Failed to initialize GPIO: {e}")
     
@@ -149,7 +166,12 @@ class GPIOController:
                         
                         # Update PWM duty cycle
                         if self.pwm:
-                            self.pwm.ChangeDutyCycle(self._smoothed_brightness)
+                            if hasattr(self, '_use_gpiozero') and self._use_gpiozero:
+                                # gpiozero uses 0.0-1.0 range
+                                self.pwm.value = self._smoothed_brightness / 100.0
+                            else:
+                                # RPi.GPIO uses 0-100 range
+                                self.pwm.ChangeDutyCycle(self._smoothed_brightness)
                             
                         logger.debug(f"LED brightness: {self._smoothed_brightness:.1f}% (RMS: {rms:.3f})")
                     
@@ -161,7 +183,12 @@ class GPIOController:
                         )
                         
                         if self.pwm:
-                            self.pwm.ChangeDutyCycle(self._smoothed_brightness)
+                            if hasattr(self, '_use_gpiozero') and self._use_gpiozero:
+                                # gpiozero uses 0.0-1.0 range
+                                self.pwm.value = self._smoothed_brightness / 100.0
+                            else:
+                                # RPi.GPIO uses 0-100 range
+                                self.pwm.ChangeDutyCycle(self._smoothed_brightness)
                 
                 # Update rate (100Hz for smooth LED response)
                 time.sleep(0.01)
@@ -181,7 +208,14 @@ class GPIOController:
             return
             
         brightness = max(0.0, min(100.0, brightness))
-        self.pwm.ChangeDutyCycle(brightness)
+        
+        if hasattr(self, '_use_gpiozero') and self._use_gpiozero:
+            # gpiozero uses 0.0-1.0 range
+            self.pwm.value = brightness / 100.0
+        else:
+            # RPi.GPIO uses 0-100 range
+            self.pwm.ChangeDutyCycle(brightness)
+            
         logger.info(f"Manual LED brightness set to {brightness:.1f}%")
     
     def test_led_sequence(self, duration: float = 5.0):
@@ -207,11 +241,20 @@ class GPIOController:
                     (0.5 + 0.5 * np.sin(2 * np.pi * i / steps))
                 )
                 
-                self.pwm.ChangeDutyCycle(brightness)
+                if hasattr(self, '_use_gpiozero') and self._use_gpiozero:
+                    # gpiozero uses 0.0-1.0 range
+                    self.pwm.value = brightness / 100.0
+                else:
+                    # RPi.GPIO uses 0-100 range
+                    self.pwm.ChangeDutyCycle(brightness)
+                    
                 time.sleep(duration / steps)
                 
             # Return to minimum
-            self.pwm.ChangeDutyCycle(self.config.brightness_min)
+            if hasattr(self, '_use_gpiozero') and self._use_gpiozero:
+                self.pwm.value = self.config.brightness_min / 100.0
+            else:
+                self.pwm.ChangeDutyCycle(self.config.brightness_min)
             logger.info("✅ LED test sequence completed")
             
         except Exception as e:
@@ -227,15 +270,22 @@ class GPIOController:
         # Clean up PWM
         if self.pwm:
             try:
-                self.pwm.stop()
+                if hasattr(self, '_use_gpiozero') and self._use_gpiozero:
+                    # gpiozero cleanup
+                    self.pwm.close()
+                else:
+                    # RPi.GPIO cleanup
+                    self.pwm.stop()
             except:
                 pass
                 
         # Clean up GPIO
         if self.gpio_available:
             try:
-                import RPi.GPIO as GPIO
-                GPIO.cleanup()
+                if not (hasattr(self, '_use_gpiozero') and self._use_gpiozero):
+                    # Only cleanup RPi.GPIO if we used it
+                    import RPi.GPIO as GPIO
+                    GPIO.cleanup()
                 logger.info("✅ GPIO cleanup completed")
             except:
                 pass
