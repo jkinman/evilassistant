@@ -13,11 +13,12 @@ SupplementaryGroups=audio
 WorkingDirectory=/home/jkinman/evilassistant
 
 # Environment setup
-Environment=PATH=/home/jkinman/evilassistant/.venv/bin
+Environment=PATH=/home/jkinman/evilassistant/.venv/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games
 Environment=PYTHONPATH=/home/jkinman/evilassistant
 Environment=PHILIPS_HUE_BRIDGE_IP=192.168.0.20
 Environment=PULSE_RUNTIME_PATH=/run/user/1000/pulse
 Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=LD_LIBRARY_PATH=/usr/lib:/usr/local/lib
 
 # Main command
 ExecStart=/home/jkinman/evilassistant/.venv/bin/python -m evilassistant

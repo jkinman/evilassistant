@@ -49,21 +49,44 @@ class GPIOController:
             return
             
         try:
-            # Check if we're on a Raspberry Pi
-            with open('/proc/cpuinfo', 'r') as f:
-                if 'Raspberry Pi' not in f.read():
-                    logger.info("Not running on Raspberry Pi - GPIO disabled")
-                    return
-        except:
-            logger.info("Could not detect Pi - GPIO disabled")
+            # Check if we're on a Raspberry Pi - try multiple detection methods
+            is_pi = False
+            
+            # Method 1: Check /proc/device-tree/model (most reliable)
+            try:
+                with open('/proc/device-tree/model', 'r') as f:
+                    model = f.read().strip()
+                    if 'Raspberry Pi' in model:
+                        is_pi = True
+                        logger.info(f"Detected Pi model: {model}")
+            except:
+                pass
+            
+            # Method 2: Check /proc/cpuinfo as fallback
+            if not is_pi:
+                try:
+                    with open('/proc/cpuinfo', 'r') as f:
+                        cpuinfo = f.read()
+                        if any(indicator in cpuinfo for indicator in ['BCM', 'Raspberry Pi', 'ARM']):
+                            is_pi = True
+                            logger.info("Detected Pi from /proc/cpuinfo")
+                except:
+                    pass
+            
+            if not is_pi:
+                logger.info("Not running on Raspberry Pi - GPIO disabled")
+                return
+                
+        except Exception as e:
+            logger.warning(f"Could not detect Pi hardware: {e} - GPIO disabled")
             return
             
         try:
-            # Try gpiozero first (better Pi 4/5 support)
+            # Try gpiozero first (better Pi 4/5 support, handles SOC issues better)
             try:
                 from gpiozero import PWMOutputDevice
                 
-                # Create PWM device
+                # Create PWM device with error handling for SOC issues
                 self.pwm = PWMOutputDevice(self.config.pin, frequency=self.config.frequency)
                 self.pwm.value = 0.0  # Start with 0% duty cycle
                 
@@ -73,26 +96,37 @@ class GPIOController:
                 
             except ImportError:
                 logger.debug("gpiozero not available, trying RPi.GPIO")
+                self._try_rpi_gpio()
                 
-                # Fallback to RPi.GPIO
-                import RPi.GPIO as GPIO
-                
-                # Setup GPIO
-                GPIO.setmode(GPIO.BCM)
-                GPIO.setup(self.config.pin, GPIO.OUT)
-                
-                # Create PWM instance
-                self.pwm = GPIO.PWM(self.config.pin, self.config.frequency)
-                self.pwm.start(0)  # Start with 0% duty cycle
-                
-                self.gpio_available = True
-                self._use_gpiozero = False
-                logger.info(f"✅ GPIO PWM initialized with RPi.GPIO on pin {self.config.pin} at {self.config.frequency}Hz")
+            except Exception as gpio_err:
+                logger.warning(f"gpiozero failed ({gpio_err}), trying RPi.GPIO fallback")
+                self._try_rpi_gpio()
+            
+        except Exception as e:
+            logger.error(f"All GPIO initialization methods failed: {e}")
+    
+    def _try_rpi_gpio(self):
+        """Try to initialize GPIO using RPi.GPIO as fallback"""
+        try:
+            import RPi.GPIO as GPIO
+            
+            # Setup GPIO with better error handling
+            GPIO.setmode(GPIO.BCM)
+            GPIO.setwarnings(False)  # Suppress warnings for already configured pins
+            GPIO.setup(self.config.pin, GPIO.OUT)
+            
+            # Create PWM instance
+            self.pwm = GPIO.PWM(self.config.pin, self.config.frequency)
+            self.pwm.start(0)  # Start with 0% duty cycle
+            
+            self.gpio_available = True
+            self._use_gpiozero = False
+            logger.info(f"✅ GPIO PWM initialized with RPi.GPIO on pin {self.config.pin} at {self.config.frequency}Hz")
             
         except ImportError:
-            logger.warning("Neither gpiozero nor RPi.GPIO available - GPIO PWM disabled")
+            logger.warning("RPi.GPIO not available - GPIO PWM disabled")
         except Exception as e:
-            logger.error(f"Failed to initialize GPIO: {e}")
+            logger.error(f"RPi.GPIO initialization failed: {e} - GPIO PWM disabled")
     
     def start_audio_envelope_following(self, audio_data_callback: Callable[[], Optional[np.ndarray]]):
         """
@@ -131,7 +165,10 @@ class GPIOController:
             
         # Reset LED to minimum brightness
         if self.gpio_available and self.pwm:
-            self.pwm.ChangeDutyCycle(self.config.brightness_min)
+            if hasattr(self, '_use_gpiozero') and self._use_gpiozero:
+                self.pwm.value = self.config.brightness_min / 100.0
+            else:
+                self.pwm.ChangeDutyCycle(self.config.brightness_min)
             
         logger.info("🔇 Stopped audio envelope following")
     
