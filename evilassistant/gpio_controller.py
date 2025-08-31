@@ -186,13 +186,13 @@ class GPIOController:
                         # Calculate RMS amplitude
                         rms = np.sqrt(np.mean(audio_data.astype(np.float32) ** 2))
                         
-                        # Scale to brightness (0-100%)
-                        target_brightness = min(
-                            self.config.brightness_max,
-                            max(
-                                self.config.brightness_min,
-                                rms * self.config.gain
-                            )
+                        # Scale to brightness (0-100%) with better scaling
+                        # Normalize RMS to a more reasonable range (0-1)
+                        normalized_rms = min(1.0, rms * self.config.gain)
+                        
+                        target_brightness = (
+                            self.config.brightness_min + 
+                            (self.config.brightness_max - self.config.brightness_min) * normalized_rms
                         )
                         
                         # Apply smoothing to prevent flickering
@@ -209,8 +209,15 @@ class GPIOController:
                             else:
                                 # RPi.GPIO uses 0-100 range
                                 self.pwm.ChangeDutyCycle(self._smoothed_brightness)
+                        
+                        # More frequent logging for debugging
+                        if hasattr(self, '_debug_counter'):
+                            self._debug_counter += 1
+                        else:
+                            self._debug_counter = 0
                             
-                        logger.debug(f"LED brightness: {self._smoothed_brightness:.1f}% (RMS: {rms:.3f})")
+                        if self._debug_counter % 10 == 0:  # Log every 10th update
+                            logger.info(f"🔆 LED: {self._smoothed_brightness:.1f}% (RMS: {rms:.4f}, norm: {normalized_rms:.4f})")
                     
                     else:
                         # No audio - fade to minimum

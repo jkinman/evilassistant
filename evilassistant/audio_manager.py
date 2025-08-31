@@ -354,16 +354,36 @@ class AudioManager:
                 self._current_audio_data = np.zeros(1024, dtype=np.float32)
     
     def _get_current_audio_chunk(self) -> Optional[np.ndarray]:
-        """Get current audio chunk for LED control"""
+        """Get current audio chunk for LED control with real-time tracking"""
         with self._audio_lock:
             if self._current_audio_data is None or not self._is_playing:
                 return None
             
-            # For real-time LED control, we'd need to sync with playback position
-            # This is a simplified version that returns the whole audio data
-            # In practice, you'd track playback position and return current chunk
+            # Calculate current playback position based on pygame mixer position
+            try:
+                # Get pygame mixer position (in milliseconds since start)
+                pos_ms = pygame.mixer.music.get_pos()
+                if pos_ms < 0:  # -1 means not playing
+                    return None
+                
+                # Convert to sample position
+                sample_rate = self.config.sample_rate
+                pos_samples = int((pos_ms / 1000.0) * sample_rate)
+                
+                # Return current chunk around playback position
+                chunk_size = 1024
+                start_pos = max(0, pos_samples - chunk_size // 2)
+                end_pos = min(len(self._current_audio_data), start_pos + chunk_size)
+                
+                if start_pos < len(self._current_audio_data):
+                    current_chunk = self._current_audio_data[start_pos:end_pos]
+                    logger.debug(f"LED: pos={pos_ms}ms, samples={pos_samples}, chunk_size={len(current_chunk)}")
+                    return current_chunk
+                    
+            except Exception as e:
+                logger.debug(f"Error getting playback position: {e}")
             
-            # Return a small chunk from the middle (simplified)
+            # Fallback: return a chunk from the middle
             chunk_size = 1024
             if len(self._current_audio_data) > chunk_size:
                 start_pos = len(self._current_audio_data) // 2
